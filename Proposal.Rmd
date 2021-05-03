@@ -1,0 +1,31 @@
+---
+title: "TODO"
+subtitle: "Project Proposal"
+author: "Kiran Babu Thatha, Marcel Schulte, Obinna Patrick Nkwocha, Shweta Pandey, Thorben Hebbelmann"
+date: "5/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Background and Motivation
+
+TODO
+
+## Project Objectives
+
+TODO
+
+## Datasets used
+
+TODO
+
+## Design Overview
+
+TODO
+
+## Time Plan
+
+TODO
