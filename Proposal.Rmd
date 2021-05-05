@@ -12,13 +12,56 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Background and Motivation
 
-TODO
+The existence of forests is essential for our Earth. Not only that forests are home to over 80 percent of land animals and plants, by covering around 31 percent of the world’s total land area, also about 1.6 billion people around the world depend on forests for their livelihoods and daily subsistence needs. Furthermore forests provide 40 percent of today's global renewable energy supply; as much as solar, hydroelectric and wind power combined. Despite these importance, forestation across the world have faced several challenges ranging from wildfire, deforestation, poor management and poor conversation in general. [1]
 
-## Project Objectives
+With this project, we seek to answer important questions that address these challenges. Additionally, we will predict……….. (this paragraph will be edited to suit our final set of questions and prediction)
 
-TODO
+We are hopeful that after this project, a body of knowledge / insight that is relevant to the resolution of challenges of forestation will be discovered. 
 
-## Datasets used
+ Forests help life to thrive by providing flora and fauna with food and breathable air.
+When we take away the forest, it is not just the trees that go. The entire ecosystem begins to fall apart, with serious consequences for all of us.
+-Loss of forests contributes as much as 30 per cent of global greenhouse-gas emissions each year--rivalling emissions from the global transportation sector.
+-Forests absorb harmful greenhouse gasses that produce climate change. In tropical forests alone, a quarter of a trillion tons of carbon is stored in above and below ground biomass.
+-Forests control the level of water in the atmosphere by helping to regulate the water cycle. In deforested areas, there is less water in the air to be returned to the soil. This then causes dryer soil and the inability to grow crops.
+
+
+
+## Objectives
+
+Questions we want to answer:
+
+* What was the global forest development over the last 30 years?
+  + What are the global trends? (Regression)
+
+* What were the main causes of forest destruction?
+  + Which countries were affected the most?
+  + How much forest was destroyed by each of these causes?
+  + Is there a correlation between rising temperatures and wild fires?
+  + Predictions of where and when wildfires are likely to occur.
+
+* Deforestation
+  + Which countries are the main drivers of deforestation?
+  + Is there a correlation between forest development and land use development?
+  + Is there a correlation between forest development and economic growth?
+  + Correlation between available water and the amount of forest in a country / globally
+  + What are the trends? (by continents)
+
+* Reforestation
+  + Which countries are the main drivers of reforestation?
+  + Is there a correlation between reforestation and deforestation?
+  + What are the trends? (by continents)
+
+* Air pollution
+  + Is there are correlation between air pollution and the amount of forest in a country / globally
+  + Is there a correlation between co2(green house gas) emission and total carbon stored in forests and 
+  + Prediction of how much forest area has to be further increased to tackle the co2 emission (what percentage of co2 decrease will occur if forest area increase).
+  
+* Further possible questions:
+  + General interest in forests from different populations? 
+  + Terrestrial protected areas as a share of total land area
+  + The main uses of forest woods?
+
+## Datasets
 
 TODO
 
