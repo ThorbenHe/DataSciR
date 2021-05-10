@@ -2,28 +2,22 @@
 title: "TODO"
 subtitle: "Project Proposal"
 author: "Kiran Babu Thatha, Marcel Schulte, Obinna Patrick Nkwocha, Shweta Pandey, Thorben Hebbelmann"
-date: "5/3/2021"
+date: "5/10/2021"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
 ```
 
 ## Background and Motivation
 
-The existence of forests is essential for our Earth. Not only that forests are home to over 80 percent of land animals and plants, by covering around 31 percent of the world’s total land area, also about 1.6 billion people around the world depend on forests for their livelihoods and daily subsistence needs. Furthermore forests provide 40 percent of today's global renewable energy supply; as much as solar, hydroelectric and wind power combined. Despite these importance, forestation across the world have faced several challenges ranging from wildfire, deforestation, poor management and poor conversation in general. [1]
+The existence of forests is essential for our life on Earth. By covering around 31 percent of the world’s total land area, forests provide a retreat and home to over 80 percent of land animals and countless partially even undiscovered plants. One can say that forests are the backbone of entire ecosystems. A significant part of the oxygen we breathe is provided by the trees, while they also absorb about 25 percent of greenhouse gases. Also economically we are dependent on forests as about 1.6 billion people around the world earn their livelihoods with forests. Furthermore, forests provide 40 percent of today’s global renewable energy supply, as much as solar, hydroelectric and wind power combined.
+Despite these utilities, forestation across the world has faced several challenges ranging from wildfire, human-driven deforestation, poor management and poor conversation in general. However, a loss of whole forests would mean severe consequences to humanity and live on Earth.  
 
-With this project, we seek to answer important questions that address these challenges. Additionally, we will predict……….. (this paragraph will be edited to suit our final set of questions and prediction)
-
-We are hopeful that after this project, a body of knowledge / insight that is relevant to the resolution of challenges of forestation will be discovered. 
-
- Forests help life to thrive by providing flora and fauna with food and breathable air.
-When we take away the forest, it is not just the trees that go. The entire ecosystem begins to fall apart, with serious consequences for all of us.
--Loss of forests contributes as much as 30 per cent of global greenhouse-gas emissions each year--rivalling emissions from the global transportation sector.
--Forests absorb harmful greenhouse gasses that produce climate change. In tropical forests alone, a quarter of a trillion tons of carbon is stored in above and below ground biomass.
--Forests control the level of water in the atmosphere by helping to regulate the water cycle. In deforested areas, there is less water in the air to be returned to the soil. This then causes dryer soil and the inability to grow crops.
-
+With this project we seek to answer important questions that address these challenges. We want to figure out the causes of destruction of forests, highlight their importance to our environment and predict trends around reforestation/deforestation. Moreover, we hope to show how we can tackle climate change by reforestation, in particular, how an increase in the forest’s area will help to increase the buffer of sustainability.
+For the statistics so far, see our [reference](https://unece.org/forestry/news/10-facts-fall-love-forests#:~:text=1) (Opened on 07th of May, 2021).
 
 
 ## Objectives
@@ -31,43 +25,96 @@ When we take away the forest, it is not just the trees that go. The entire ecosy
 Questions we want to answer:
 
 * What was the global forest development over the last 30 years?
-  + What are the global trends? (Regression)
+  + What are the trends? (globally)
 
 * What were the main causes of forest destruction?
   + Which countries were affected the most?
   + How much forest was destroyed by each of these causes?
   + Is there a correlation between rising temperatures and wild fires?
-  + Predictions of where and when wildfires are likely to occur.
+  + Prediction of where and when wildfires are likely to occur.
 
 * Deforestation
   + Which countries are the main drivers of deforestation?
-  + Is there a correlation between forest development and land use development?
-  + Is there a correlation between forest development and economic growth?
-  + Correlation between available water and the amount of forest in a country / globally
   + What are the trends? (by continents)
+  + Prediction of how many years it would take until all forests are lost based on the current rate of change.
 
 * Reforestation
   + Which countries are the main drivers of reforestation?
   + Is there a correlation between reforestation and deforestation?
   + What are the trends? (by continents)
 
-* Air pollution
-  + Is there are correlation between air pollution and the amount of forest in a country / globally
-  + Is there a correlation between co2(green house gas) emission and total carbon stored in forests and 
-  + Prediction of how much forest area has to be further increased to tackle the co2 emission (what percentage of co2 decrease will occur if forest area increase).
+* Relation to other environmental issues
+  + Is there a correlation between air pollution and the amount of forest in a country / globally?
+  + Is there a correlation between greenhouse gas emission and total carbon stored in forests. 
+  + Prediction of how much forest area has to be further increased to tackle the greenhouse gas emissions (what percentage of greenhouse gas decrease will occur if forest area increases).
+  + TODO: some question related to water, e.g.: Is there a correlation between available water and the amount of forest in a country / globally?
   
 * Further possible questions:
-  + General interest in forests from different populations? 
-  + Terrestrial protected areas as a share of total land area
-  + The main uses of forest woods?
+  + How has the general interest in forests changed? 
+  + How much of the global forests belong to protected areas?
+  + Is there a correlation between forest development and economic growth?
+  + Is there a correlation between forest development and land use development?
+  + What are the main reasons for deforestation?
 
 ## Datasets
 
-TODO
+These are the data sets we will use to answer our questions:
+
+1. [FAO. 2020. Global Forest Resources Assessment 2020](https://fra-data.fao.org/WO/fra2020/home/)  
+Consisting of 3 data sets:  
+  1.1 Data on forest development (e.g. deforestation, reforestation)  for the intervals 1990-2000, 2000-2010, 2010-2015 and 2015-2020.  
+  1.2 Data on forest disturbances (e.g. fire, weather) for the period 2000-2017.  
+  1.3 Data on further topics (e.g. Forest Management / Ownership) for the period 1990-2020 (not every year included).
+
+```{r echo=FALSE, message=FALSE}
+intervals <- tibble(read_csv("FRA_2020_data/Intervals_2021_05_05.csv"))
+annual <- tibble(read_csv("FRA_2020_data/Annual_2021_05_05.csv"))
+glimpse(intervals %>% drop_na() %>% select(name, year, contains('1')))
+```
+```{r echo=FALSE, message=FALSE}
+annual <- tibble(read_csv("FRA_2020_data/Annual_2021_05_05.csv"))
+glimpse(annual %>% drop_na() %>% select(name, year, contains('5')))
+```
+```{r echo=FALSE, message=FALSE}
+fra <- tibble(read_csv("FRA_2020_data/FRA_Years_2021_05_05.csv"))
+glimpse(fra %>% select(name, year, '7a_employment_tot', '4a_priv_own'))
+```
+
+2. [FAO. 2020. FAOSTAT Emissions-Land Use, Forest Land dataset.](http://www.fao.org/faostat/en/#data/GF)  
+Data on emissions and area change due to gain and losses of carbon stocks in living  (above ground  and  below ground) tree biomass for the period 1990–2020. 
+```{r echo=FALSE, message=FALSE}
+emissions <- tibble(read_csv("Emissions_Land_Use_Forest_Land_E_All_Data_(Normalized)/Emissions_Land_Use_Forest_Land_E_All_Data_(Normalized).csv"))
+glimpse(emissions %>% select(Area, Item, Element, Year, Value))
+```
+
+3. [FAO. 2021. FAOSTAT Temperature Change Dataset](http://www.fao.org/faostat/en/#data/ET)  
+Data on mean  surface temperature change by country for the period 1961–2020. 
+```{r echo=FALSE, message=FALSE}
+temp <- tibble(read_csv("Environment_Temperature_change_E_All_Data_(Normalized)/Environment_Temperature_change_E_All_Data_(Normalized).csv"))
+glimpse(temp %>% select(Area, Element, Year, Value))
+```
+
+4. [OECD. 2021. Air quality and health: Exposure to PM2.5 fine particles](https://stats.oecd.org/viewhtml.aspx?datasetcode=EXP_PM2_5&lang=en)  
+Data on mean population exposures to outdoor and ambient PM2.5 particles for the period 1990–2018 (not every year included).
+```{r echo=FALSE, message=FALSE}
+PM <- tibble(read_csv("EXP_PM2_5_10052021161712459.csv"))
+glimpse(PM %>% select(Country, Variable, Year, Value))
+```
+
+5. [CAIT data: Climate Watch. 2020. GHG Emissions](https://www.climatewatchdata.org/data-explorer/historical-emissions?historical-emissions-data-sources=cait&historical-emissions-gases=all-ghg&historical-emissions-regions=All%20Selected&historical-emissions-sectors=total-including-lucf&page=1)  
+Data on greenhouse gas (GHG) emissions for the period 1990–2018. 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ghg <- tibble(read_csv("historical_emissions.csv"))
+glimpse(ghg %>% mutate(`1990` = as.double(`1990`)) %>% select(Country, Sector, Gas, `1990`, `2018`))
+```
+
+6. TODO: Relevant water data set. 
 
 ## Design Overview
 
 TODO
+
+- Regression, Clustering, ...
 
 ## Time Plan
 
