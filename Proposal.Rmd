@@ -1,5 +1,5 @@
 ---
-title: "TODO"
+title: "Multi-Perspective and Predictive Analysis of Forests; the Issues, Challenges and Global Trends"
 subtitle: "Project Proposal"
 author: "Kiran Babu Thatha, Marcel Schulte, Obinna Patrick Nkwocha, Shweta Pandey, Thorben Hebbelmann"
 date: "`r Sys.Date()`"
@@ -14,7 +14,7 @@ library(tidyverse)
 ## Background and Motivation
 
 The existence of forests is essential for our life on Earth. By covering around 31 percent of the world’s total land area, forests provide a retreat and home to over 80 percent of land animals and countless partially even undiscovered plants. One can say that forests are the backbone of entire ecosystems. A significant part of the oxygen we breathe is provided by the trees, while they also absorb about 25 percent of greenhouse gases. Also economically we are dependent on forests as about 1.6 billion people around the world earn their livelihoods with forests. Furthermore, forests provide 40 percent of today’s global renewable energy supply, as much as solar, hydroelectric and wind power combined.
-Despite these utilities, forestation across the world has faced several challenges ranging from wildfire, human-driven deforestation, poor management and poor conversation in general. However, a loss of whole forests would mean severe consequences to humanity and live on Earth.  
+Despite these utilities, forestation across the world has faced several challenges ranging from wildfire, human-driven deforestation, poor management and poor conversation in general. However, a loss of whole forests would mean severe consequences to humanity and life on Earth.  
 
 With this project we seek to answer important questions that address these challenges. We want to figure out the causes of destruction of forests, highlight their importance to our environment and predict trends around reforestation/deforestation. Moreover, we hope to show how we can tackle climate change by reforestation, in particular, how an increase in the forest’s area will help to increase the buffer of sustainability.
 For the statistics so far, see our [reference](https://unece.org/forestry/news/10-facts-fall-love-forests#:~:text=1) (Opened on 07th of May, 2021).
@@ -118,10 +118,19 @@ glimpse(aquastat)
 
 ## Design Overview
 
-TODO
-
-- Regression, Clustering, ...
+* For general data (pre-)processing and visualizations:
+  + Tidyverse
+  + PCA
+* For finding trends / correlations / patterns:
+  + Linear Regression
+  + Correlation Coefficients
+    + Pearson / Spearman / Kendall: depending on the type of data
+  + Clustering (e.g. k-Means)
+* For predictive questions:
+  + Linear / Logistic Regression
+  + Decision / Regression Trees
+  + Neural Networks
 
 ## Time Plan
 
-TODO
+![](time_plan.jpeg)
