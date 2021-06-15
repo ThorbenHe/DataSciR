@@ -1,0 +1,131 @@
+---
+title: "Kiranwork"
+output: html_document
+---
+
+```{r setup, include=FALSE,warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(plotly)
+library(countrycode)
+```
+
+## R Markdown
+
+
+
+```{r echo=FALSE, message=FALSE,warning=FALSE}
+intervals <- tibble(read_csv("FRA_2020_data/Intervals_2021_05_05.csv"))
+
+Forest_Area<- tibble(read_csv("FRA_2020_data/fra2020-extentOfForest.csv"))
+
+intervals_1<-intervals %>% mutate(`1d_deforestation`=case_when(year %in% c("1990-2000","2000-2010")~`1d_deforestation`*10,year %in% c("2010-2015","2015-2020")~`1d_deforestation`*5)) %>% mutate(`1d_expansion`=case_when(year %in% c("1990-2000","2000-2010")~`1d_expansion`*10,year %in% c("2010-2015","2015-2020")~`1d_expansion`*5)) %>% mutate(`1d_afforestation`=case_when(year %in% c("1990-2000","2000-2010")~`1d_afforestation`*10,year %in% c("2010-2015","2015-2020")~`1d_afforestation`*5)) %>% mutate(`1e_reforestation`=case_when(year %in% c("1990-2000","2000-2010")~`1e_reforestation`*10,year %in% c("2010-2015","2015-2020")~`1e_reforestation`*5)) %>%mutate(`1d_nat_exp`=case_when(year %in% c("1990-2000","2000-2010")~`1d_nat_exp`*10,year %in% c("2010-2015","2015-2020")~`1d_nat_exp`*5)) 
+
+intervals_2<- intervals_1%>% select(regions,name,`1d_deforestation`,`1d_expansion`,`1d_afforestation`,`1e_reforestation`,`1d_nat_exp`)  %>% group_by(name,regions) %>% summarize(t_deforestation =sum(as.numeric(`1d_deforestation`),na.rm = TRUE),t_expansion=sum(as.numeric(`1d_expansion`),na.rm = TRUE),t_afforestation =sum(as.numeric(`1d_afforestation`),na.rm = TRUE),t_reforestation =sum(as.numeric(`1e_reforestation`),na.rm = TRUE),t_nat_exp =sum(as.numeric(`1d_nat_exp`),na.rm = TRUE))
+
+def_30<-inner_join(intervals_2,Forest_Area,by="name") %>% mutate(t_deforestation=case_when((t_deforestation==0.00 & `1990`-`2020`>0) ~ `1990`-`2020`,(t_deforestation>0.00) ~t_deforestation )) %>% mutate(year= as.integer((30*`2020`)/t_deforestation)) %>% mutate(test_2020=t_expansion-t_deforestation+`1990`) %>%   mutate(percent_change_1=(t_deforestation/`1990`)*100) %>%  mutate(drivers=case_when(percent_change_1<30 ~ "not Drivers",percent_change_1>30  ~"Main Drivers"))
+
+def_30$name[def_30$name=="Bolivia (Plurinational State of)"]<-"Bolivia"
+def_30$name[def_30$name=="Brunei Darussalam"]<-"Brunei"
+def_30$name[def_30$name=="Cabo Verde"]<-"Cape Verde"
+def_30$name[def_30$name=="Congo"]<-"Democratic Republic of the Congo"
+def_30$name[def_30$name=="Côte d'Ivoire"]<-"Ivory Coast"
+def_30$name[def_30$name=="French Guyana"]<-"French Guiana"
+def_30$name[def_30$name=="Iran (Islamic Republic of)"]<-"Iran"
+def_30$name[def_30$name=="Lao People's Democratic Republic"]<-"Laos"
+def_30$name[def_30$name=="Micronesia (Federated States of)"]<-"Micronesia"
+def_30$name[def_30$name=="Republic of Korea"]<-"South Korea"
+def_30$name[def_30$name=="Republic of Moldova"]<-"Moldova"
+def_30$name[def_30$name=="Réunion"]<-"Reunion"
+def_30$name[def_30$name=="Russian Federation"]<-"Russia"
+def_30$name[def_30$name=="Saint Vincent and the Grenadines"]<-"Saint Vincent"
+def_30$name[def_30$name=="Syrian Arab Republic"]<-"Syria"
+def_30$name[def_30$name=="Trinidad and Tobago"]<-"Trinidad"
+def_30$name[def_30$name=="United Kingdom of Great Britain and Northern Ireland"]<-"UK"
+def_30$name[def_30$name=="United Republic of Tanzania"]<-"Tanzania"
+def_30$name[def_30$name=="United States of America"]<-"USA"
+def_30$name[def_30$name=="Venezuela (Bolivarian Republic of)"]<-"Venezuela"
+def_30$name[def_30$name=="Viet Nam"]<-"Vietnam"
+```
+
+
+```{r echo=FALSE,  message=FALSE,warning=FALSE}
+
+def_30$code <- countrycode(sourcevar = def_30$name,
+                                origin = "country.name",
+                                destination = "iso3c")
+
+plot_ly(def_30, type='choropleth', locations=def_30$code, z=def_30$year, text=def_30$name, colorscale="Green") %>% colorbar(title = "years") %>% layout(
+    title = 'Ignore this graph trying something on it '
+  )
+
+
+
+
+```
+
+
+```{r  echo=FALSE,message=FALSE,warning=FALSE}
+world <- map_data("world") %>% group_by(region) %>% filter(row_number()==1)
+colnames(world)[5]<-"name"
+def_30_world<-inner_join(world,def_30,by="name")
+plot_geo(def_30_world, lat = ~lat, lon = ~long) %>% add_markers(text = ~paste(name,paste("Deforestation in last 30 years:",t_deforestation ), paste("current forest area:",`2020` ),paste("Forest land will be lost in", year) ,sep = "<br />"),color=~drivers, symbol = I("circle"), size = I(8), hoverinfo = "text") %>% layout(title="Deforestation Analysis",geo=list(showland = TRUE,
+    landcolor = toRGB("gray95"),
+    subunitcolor = toRGB("gray85"),
+    countrycolor = toRGB("gray85"),
+    countrywidth = 0.5,
+    subunitwidth = 0.5))
+
+
+
+```
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+trends<- inner_join(world,intervals_1,by="name") %>% inner_join(Forest_Area,by="name") %>% select(name,year,`1d_deforestation`,`1d_expansion`,`1d_afforestation`,`1e_reforestation`,`1d_nat_exp`)
+trends$continent <- countrycode(sourcevar = trends$name,
+                            origin = "country.name",
+                            destination = "continent")
+trends$year[trends$year=="2010-2015"]<-"2010-2020"
+trends$year[trends$year=="2015-2020"]<-"2010-2020"
+
+trends_def<-trends %>% group_by(year,continent) %>% summarize(t_deforestation =sum(as.numeric(`1d_deforestation`),na.rm = TRUE),t_expansion=sum(as.numeric(`1d_expansion`),na.rm = TRUE),t_afforestation =sum(as.numeric(`1d_afforestation`),na.rm = TRUE),t_reforestation =sum(as.numeric(`1e_reforestation`),na.rm = TRUE),t_nat_exp =sum(as.numeric(`1d_nat_exp`),na.rm = TRUE)) 
+
+#%>% pivot_longer(cols = contains("t_"),names_to = "continent",values_to = )
+
+plot_ly(trends_def,x=~year,y=~t_deforestation,color = trends_def$continent) %>% layout(
+    title = 'Deforestation Trends over last three decades',xaxis = list(title = 'Decades'),yaxis = list(title = 'Total Deforesstation(1 Unit=1000 ha)')
+  )
+
+
+                      
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ghg<- tibble(read_csv("historical_emissions.csv")) 
+
+gh1<-ghg%>% filter(Gas=="CO2" & Country!="World") %>% filter(Sector=="Total including LUCF")
+colnames(gh1)[1]<-"name"
+gh1$code <- countrycode(sourcevar = gh1$name,
+                                origin = "country.name",
+                                destination = "iso3c")
+
+#function for time series prediction of the future values co2
+predic_2021<-function(country){
+x<-gh1 %>% filter(name==country) %>% select(-`Data source`,-Sector,-Gas,-Unit,-code) %>% mutate(`1990`=as.double(`1990`)) %>% pivot_longer(cols = -name,names_to = "year",values_to = "emission") %>% arrange(year)
+fit<-arima(ts(x$emission,start = 1990,frequency = 1),order = c(1,2,0))
+predict(fit,n.ahead=5)$pred[3]
+}
+
+ghg_pre<-gh1 %>% rowwise() %>% mutate(new_area=as.numeric(predic_2021(name))/2.5)
+
+
+
+
+plot_ly(ghg_pre, type='choropleth', locations=ghg_pre$code, z=ghg_pre$new_area, text=ghg_pre$name, colorscale="Green") %>% colorbar(title = "Forest Area <br />Required(1 Unit=1000 ha)") %>% layout(
+    title = 'New forest area required <br />to compnsate present emission'
+  )
+
+```
+
