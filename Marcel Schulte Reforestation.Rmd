@@ -1,0 +1,235 @@
+---
+title: "Reforestation"
+date: "`r Sys.Date()`"
+author: "Marcel Schulte"
+output: html_document
+---
+
+```{r setup - load data, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(plotly)
+library(countrycode)
+intervals <- tibble(read_csv("FRA_2020_data/Intervals_2021_05_05.csv"))
+fra <- read_csv("FRA_2020_data/FRA_Years_2021_05_05.csv")
+```
+
+Which countries are the main drivers of reforestation?
+
+```{r, include=FALSE}
+reforestation <- intervals %>% 
+  select(name, year, `1e_reforestation`) %>% 
+  mutate(`1e_reforestation` = case_when(
+    year == c("1990-2000", "2000-2010") ~ `1e_reforestation` * 10,
+    TRUE ~ `1e_reforestation` * 5
+    )) %>% 
+  group_by(name) %>% 
+  summarise(totalref = sum(`1e_reforestation`, na.rm = TRUE)) %>% 
+  ungroup()  %>%
+  arrange(desc(totalref))
+
+```
+
+
+
+```{r, include=FALSE}
+refplot <- reforestation %>%
+  head(20)
+```
+
+
+```{r, echo=FALSE}
+ ggplot(refplot, aes(x = reorder(name, totalref), y = totalref)) +
+  geom_col(fill = "Forestgreen") +
+  labs(
+    y = "Increase between 1990-2020 (1000 ha)",
+    x = NULL,
+    title = "Top 20 countries total reforestation \nbetween 1990 and 2020"
+  ) +
+  coord_flip()
+```
+
+```{r, include = FALSE}
+area <- fra %>%
+    group_by(name) %>%
+    filter(year == 1990) %>%
+    select(name, `1a_forestArea`)
+```
+
+
+Relation of reforestation increase between 1990-2020 to forest area in 1990 (join with fra dataset)
+
+```{r, include = FALSE}
+increase <- reforestation %>%
+  inner_join(area, by = "name") %>%
+  mutate(reforestation_increase = (totalref/`1a_forestArea`) * 100) %>%
+  arrange(desc(reforestation_increase))
+```
+
+```{r, echo=FALSE}
+increase %>%
+    arrange(desc(reforestation_increase)) %>%
+    head(20)%>%
+  ggplot(mapping = aes(x = reorder(name, reforestation_increase), y = reforestation_increase)) +
+  geom_col(fill = "Forestgreen") +
+  labs(
+    y = "Increase in %",
+    x = NULL,
+    title = "Countries and their increase in reforestation \nfrom 1990-2020 in relation to their total forest \narea in 1990"
+  ) +
+  coord_flip()
+```
+
+
+```{r, include = FALSE}
+increase$name[increase$name=="Bolivia (Plurinational State of)"]<-"Bolivia"
+increase$name[increase$name=="Brunei Darussalam"]<-"Brunei"
+increase$name[increase$name=="Cabo Verde"]<-"Cape Verde"
+increase$name[increase$name=="Côte d'Ivoire"]<-"Ivory Coast"
+increase$name[increase$name=="French Guyana"]<-"French Guiana"
+increase$name[increase$name=="Iran (Islamic Republic of)"]<-"Iran"
+increase$name[increase$name=="Lao People's Democratic Republic"]<-"Laos"
+increase$name[increase$name=="Micronesia (Federated States of)"]<-"Micronesia"
+increase$name[increase$name=="Republic of Korea"]<-"South Korea"
+increase$name[increase$name=="Republic of Moldova"]<-"Moldova"
+increase$name[increase$name=="Réunion"]<-"Reunion"
+increase$name[increase$name=="Russian Federation"]<-"Russia"
+increase$name[increase$name=="Saint Vincent and the Grenadines"]<-"Saint Vincent"
+increase$name[increase$name=="Syrian Arab Republic"]<-"Syria"
+increase$name[increase$name=="Trinidad and Tobago"]<-"Trinidad"
+increase$name[increase$name=="United Kingdom of Great Britain and Northern Ireland"]<-"UK"
+increase$name[increase$name=="United Republic of Tanzania"]<-"Tanzania"
+increase$name[increase$name=="United States of America"]<-"USA"
+increase$name[increase$name=="Venezuela (Bolivarian Republic of)"]<-"Venezuela"
+increase$name[increase$name=="Viet Nam"]<-"Vietnam"
+increase$name[increase$name=="Czechia"]<-"Czech Republic"
+increase$name[increase$name=="North Macedonia"]<-"Macedonia"
+increase$name[increase$name=="Democratic People's Republic of Korea"]<-"North Korea"
+increase$name[increase$name=="Congo"]<-"Republic of Congo"
+increase$name[increase$name=="Eswatini"]<-"Swaziland"
+```
+
+
+
+```{r, echo=FALSE}
+world <- map_data("world") %>%
+     filter(region != "Antarctica")  
+
+
+ggplot() +
+  geom_map(
+    data = world, map = world,
+    aes(long, lat, map_id = region)
+  ) +
+  geom_map(
+    data = increase, map = world,
+    aes(fill = reforestation_increase, map_id = name)
+  ) +
+  scale_fill_continuous(
+    low="#ffffff", high="#006400", guide="colorbar") +
+    scale_y_continuous(breaks=c()) +
+    scale_x_continuous(breaks=c()) +
+labs(x = NULL, y = NULL, title = "Increase in reforestation between 1990 and 2020 in Percent", fill = "")
+```
+
+
+
+
+
+Is there a correlation between reforestation and deforestation?
+
+```{r, include = FALSE}
+deforestation <- intervals %>% 
+  select(name, year, `1d_deforestation`) %>% 
+  mutate(`1d_deforestation` = case_when(
+    year == c("1990-2000", "2000-2010") ~ `1d_deforestation` * 10,
+    TRUE ~ `1d_deforestation` * 5
+    )) %>% 
+  group_by(name) %>% 
+  summarise(totaldef = sum(`1d_deforestation`, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  arrange(desc(totaldef))
+
+```
+
+
+```{r, include = FALSE}
+corref <- reforestation %>%
+ inner_join(deforestation, by = "name") %>%
+ select(name,totalref, totaldef)
+```
+
+
+```{r total reforestation-vs-total deforestation, echo=FALSE}
+ggplot(data = corref, mapping = aes(x = totalref, y = totaldef)) +
+  geom_point() +
+  scale_x_continuous(limits = c(100, 5000)) +
+  scale_y_continuous(limits = c(100, 10000)) +
+  geom_smooth(se = FALSE) +
+  ggrepel::geom_text_repel(
+    data = filter(corref), 
+    aes(label = name), 
+    color = "black", size = 7/.pt) 
+```
+
+```{r, include = FALSE}
+corref <- corref %>%
+select(totalref, totaldef)
+```
+
+
+
+```{r, echo=FALSE}
+shapiro.test(corref$totalref)
+shapiro.test(corref$totaldef)
+
+```
+
+
+```{r, echo=FALSE}
+corrr::correlate(corref, quiet = TRUE, method = "pearson") 
+pear <- cor.test(corref$totalref, corref$totaldef, method = 'pearson')
+pear
+```
+Almost no significant correlation -> At least in the last 30 years, countries did not try to make up for a human driven deforestation 
+
+```{r, echo=FALSE}
+corrr::correlate(corref, quiet = TRUE, method = "spearman") 
+#Spear <- cor.test(corref$totalref, corref$totaldef, method = 'spearman')
+#Spear
+```
+
+
+
+What are the trends? (continents)
+
+```{r, include = FALSE}
+intervals_1<-intervals %>% 
+mutate(`1e_reforestation`=case_when(year %in% c("1990-2000","2000-2010")~`1e_reforestation`*10,year %in% c("2010-2015","2015-2020")~`1e_reforestation`*5))
+
+```
+
+
+```{r, include = FALSE}
+world <- map_data("world") %>% 
+  group_by(region) %>% 
+  filter(row_number()==1)
+colnames(world)[5]<-"name"
+  
+```
+
+```{r, echo=FALSE}
+trends<- inner_join(world,intervals_1,by="name") %>% 
+  select(name,year,`1e_reforestation`)
+trends$continent <- countrycode(sourcevar = trends$name,
+                            origin = "country.name",
+                            destination = "continent")
+
+trends_ref<-trends %>% 
+  group_by(year,continent) %>% summarize(t_reforestation =sum(as.numeric(`1e_reforestation`),na.rm = TRUE))
+
+
+plot_ly(trends_ref,x=~year,y=~t_reforestation,color = trends_ref$continent)
+```
+
+
