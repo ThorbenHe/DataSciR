@@ -1,0 +1,387 @@
+---
+title: "Data Science with R:Project"
+author: "Shweta"
+date: "5/25/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = 'C:/Users/Dell/Desktop/SoSe21/DSwithR/Project/D')
+# install.packages("janitor")
+# install.packages("psych")
+# install.packages("ggthemes")
+library(psych)
+library(tidyverse)
+library(ggthemes)
+library(dplyr)
+library(extrafont)
+library(RColorBrewer)
+```
+
+
+## Load data
+
+```{r read-dataset, echo=FALSE}
+# forest cover of continents dataset
+forest_continents <- read_csv("FAOSTAT_data_continents.csv")
+
+# change column names
+colnames(forest_continents)[colnames(forest_continents) == "Value"] <- "ForestSize"
+colnames(forest_continents)[colnames(forest_continents) == "Area"] <- "Continent"
+
+forest_continents
+
+```
+
+## structure and dimension of the dataset
+
+```{r structure-and-dimension-of-data, echo=FALSE}
+str(forest_continents)
+dim(forest_continents)
+```
+
+## Presenting data in a table
+
+```{r kable-forest-continents, echo=FALSE}
+knitr::kable(head(forest_continents), caption = "A knitr kable table")
+```
+
+## DATA WRANGLING
+```{r data-wrangling, echo=FALSE}
+newData <- forest_continents %>%
+  drop_na() %>% 
+  select(c("Continent","Year","ForestSize")) %>% 
+  group_by(Continent, Year) %>% 
+  arrange(Year) %>% 
+  mutate(AvgforestSize = mean(ForestSize))
+
+newData
+
+```
+
+
+## EXPLORATORY DATA ANALYSIS
+
+```{r line-plot, echo=FALSE}
+newData %>% 
+  ggplot(aes(x = Year, y = AvgforestSize,color = Continent))+
+  geom_line(size = 1.5, alpha = 0.7)+
+  labs(title = "Average Forest Size of 8ontinents (1990-2020)",
+       subtitle = "How the forest size (avg) has changed over the last 30 years?",
+       x = "Year",
+       y = "Average Forest Size (ha)",
+       color = "Continent")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text(),text = element_text(family = "Arial"))+
+  theme(plot.subtitle = element_text(size = rel(0.8), face = "italic"))+ 
+  scale_color_brewer(palette = "Dark2")
+```
+
+
+
+```{r forest-continents-scatter-plot, echo=FALSE}
+newData  %>% 
+  ggplot(aes(x = Year, y = ForestSize)) +
+  geom_point(aes(color = Continent), size = 4, shape = 16, alpha = 0.7) +
+  scale_y_continuous(limits = c(100000, 1800000))+
+  labs(
+    x = "Years",
+    y = "Forest land(1000ha)",
+    title = "World forest land through the decades"
+  ) +
+  theme_minimal()
+  # scale_color_gradient(low = "#0091ff", high = "#f0650e")
+
+
+```
+
+
+```{r qwerty, echo=FALSE}
+newData %>% 
+  group_by(Year,Continent) %>% 
+  ggplot(aes(y = ForestSize, x = Year, fill = Continent))+
+  geom_bar(stat='identity')+
+  labs(title = "Forest Cover",
+       subtitle = "high",
+       x = "Year",
+       y = "Forest Area") +
+  theme(legend.position = "bottom")+
+  theme_minimal()+
+  theme(axis.text = element_text()) + 
+  scale_x_continuous(breaks = seq(1990,2020,10)) +
+  scale_y_continuous(labels = scales::comma)
+  
+```
+
+
+
+```{r}
+newData %>% 
+  group_by(Year, Continent) %>% 
+  ggplot(x = Year, y = AvgforestSize)+
+  geom_line(aes(group=Continent))+
+  scale_x_continuous(breaks = seq(1990, 2020, 10))+
+  facet_wrap(~ continent, nrow = 1)
+
+```
+
+
+```{r}
+```
+
+
+```{r trends-forest-cover-change, echo=FALSE}
+newData %>% 
+  group_by(Year) %>% 
+  #summarize(avg_forest_area = mean(ForestArea)) %>% 
+  #as.data.frame() %>% 
+  #ungroup() %>% 
+  ggplot(aes(x = Year, y = ForestSize, color = Year)) +
+  geom_line(size=1.5, alpha=0.5)+
+  geom_point()+
+  scale_color_viridis_c(option = "D") +
+  labs(
+    x = "Year",
+    y = "Forest Size (1000ha)",
+    title = "Forest Cover of the world"
+  ) +
+  scale_y_continuous(labels = scales::comma) +
+  scale_x_continuous(breaks = seq(1990, 2020, 5)) +
+  theme_fivethirtyeight()
+```
+
+
+## Load Country data
+```{r qwerty2, echo=FALSE}
+forest_countries <- read_csv("FAOSTAT_data_6-9-2021.csv")
+
+colnames(forest_countries)[colnames(forest_countries) == "Value"] <- "ForestArea"
+colnames(forest_countries)[colnames(forest_countries) == "Area"] <- "Country"
+forest_countries <- forest_countries %>% subset(Country != "USSR")
+
+glimpse(forest_countries)
+```
+
+
+## TOP 20 COUNTRIES WITH LARGEST FOREST AREA
+```{r top-20-countries-with-largest-forest-area-plot, echo=FALSE}
+
+forest_countries %>% 
+  drop_na() %>% 
+  group_by(Country) %>% 
+  summarize(avg_forest_size = mean(ForestArea)) %>% 
+  as.data.frame() %>% 
+  ungroup() %>% 
+  arrange(desc(avg_forest_size)) %>%
+  top_n(20) %>% 
+  ggplot(aes(x = avg_forest_size, y = reorder(Country, avg_forest_size))) +
+  geom_col(fill = "#1c9099") +
+  theme(legend.position = "none") +
+  labs(
+    x = "Average Forest Size (ha)",
+    y = "Country",
+    title = "Top 10 countries with largest forest area",
+    subtitle = "Time period: 1990 - 2020"
+  )+
+  scale_x_continuous(labels = scales::comma) +
+  theme_minimal()+
+  theme(axis.title.x = element_text(color = ), text = element_text(family="Arial")) 
+ 
+```
+
+
+
+
+```{r qwerty3, echo=FALSE}
+forest_countries %>%
+  drop_na() %>%
+  group_by(Country, Year) %>% 
+  summarize(forest_perYear = sum(ForestArea)/Year)#### do this with air pollution per year
+  
+  
+
+```
+
+
+## COUNTRIES WITH LEAST FOREST AREA
+```{r countries-with-least-forest-area-plot, echo=FALSE}
+
+forest_countries %>% 
+  drop_na() %>% 
+  group_by(Country) %>% 
+  summarize(avg_forest_size = mean(ForestArea)) %>% 
+  as.data.frame() %>% 
+  arrange(desc(avg_forest_size)) %>%
+  top_n(-20) %>% 
+  ggplot(aes(x = avg_forest_size, y = reorder(Country, avg_forest_size), fill = Country)) +
+  geom_col(fill = "#756bb1") +
+  theme(legend.position = "none") +
+  labs(
+    x = "Average Forest Size (ha)",
+    y = "Countries",
+    title = "Countries with least forest area",
+    subtitle = "Time period: 1990 - 2020"
+  )+
+  theme_minimal()+
+  theme(axis.title.x = element_text(color = ), text = element_text(family="Arial"))
+  
+```
+
+## FOREST DATA OVER THE YEARS
+```{r maximum-forest-cover-plot, echo=FALSE}
+forest_countries %>% 
+  drop_na() %>% 
+  group_by(Year) %>%
+  summarize(max_forest_size = max(ForestArea)) %>% 
+  as.data.frame() %>% 
+  ggplot(aes(x = Year, y =max_forest_size , fill = max_forest_size)) + 
+  geom_col()+
+  labs(
+    x = "Year",
+    y = "Forest Size (ha)",
+    title = "Maximum Forest cover over the last 30 years"
+  ) +
+  scale_x_continuous(breaks = seq(1990,2020,10)) +
+  scale_y_continuous(labels = scales::comma)
+```
+```{r}
+
+
+```
+
+## LOAD SECOND DATASET
+```{r air-pollution-data, echo=FALSE}
+
+AirPollution <- read_csv("FAOSTAT_data_CO2_emmision.csv")
+glimpse(AirPollution)  
+
+colnames(AirPollution)[colnames(AirPollution) == "Value"] <- "EmissionValue"
+colnames(AirPollution)[colnames(AirPollution) == "Area"] <- "Country"
+
+glimpse(AirPollution)  
+glimpse(forest_countries)
+
+```
+
+## MERGE TWO DATASETS
+```{r merged-data-set, echo=FALSE}
+mergedData <- merge(forest_countries, AirPollution, by=c("Country","Year")) %>% 
+  select(c('Country','Year','ForestArea','EmissionValue')) %>% 
+  drop_na() %>% 
+  group_by(Year) %>% 
+  summarize(TotalForestArea = sum(ForestArea), TotalEmission = sum(EmissionValue)) %>% 
+  unique()
+mergedData
+```
+
+
+```{r correlation-plots, echo=FALSE}
+mergedData %>% 
+  ggplot(aes(x = TotalForestArea, y = TotalEmission)) +
+  geom_point() +
+  labs(x="Total Forest Area (ha)", y = "Total Pollution", title="Correaltion between Forest Area and CO2 Emmision (globally)") + 
+  geom_smooth(method = 'lm')
+
+```
+
+## CORRELATION
+```{r correlation, echo=FALSE}
+cor(x =mergedData$TotalForestArea, y = mergedData$TotalEmission, use = "everything", method = "kendall")
+
+```
+
+## REGRESSION ANALYSIS
+
+```{r regression, echo=FALSE}
+# load and prepare data
+
+# forest area
+forest_land_continents <- read_csv("FAOSTAT_data_continents.csv")
+
+colnames(forest_land_continents)[colnames(forest_land_continents) == "Value"] <- "ForestArea"
+colnames(forest_land_continents)[colnames(forest_land_continents) == "Area"] <- "Continent"
+glimpse(forest_land_continents)
+
+# co2 emission
+co2_emission_continents <- read_csv("CO2_emission_continents.csv")
+
+colnames(co2_emission_continents)[colnames(co2_emission_continents) == "Value"] <- "EmissionValue"
+colnames(co2_emission_continents)[colnames(co2_emission_continents) == "Area"] <- "Continent"
+
+# temperature change
+
+temp_change <- read_csv("FAOSTAT_data_6-13-2021_temp1.csv")
+glimpse(temp_change)
+
+colnames(temp_change)[colnames(temp_change) == "Value"] <- "TemperatureChange"
+colnames(temp_change)[colnames(temp_change) == "Area"] <- "Continent"
+
+temp_change <- temp_change %>% 
+  drop_na() %>% 
+  group_by(Continent,Months) %>% 
+  select(c("Continent", "Year", "Months","TemperatureChange"))
+temp_change 
+
+# merge two datasets and remove missing values 
+data1 <-  merge(forest_land_continents,co2_emission_continents,by=c("Continent","Year")) %>%
+  drop_na() %>% 
+  select(c("Continent","Year","ForestArea","EmissionValue"))
+glimpse(data1)
+
+data <- merge(data1, temp_change, by=c("Year","Continent")) %>% 
+  select(c("Continent","Year","TemperatureChange","ForestArea","EmissionValue"))
+
+glimpse(data)
+
+```
+
+
+## fit model and estimate parameters
+```{r build-model, echo=FALSE}
+library(tidymodels)
+linear_reg() %>%
+  set_engine("lm") %>%
+  fit(formula = ForestArea ~ EmissionValue + TemperatureChange, data = data) -> model
+model
+
+linear_reg() %>%
+  set_engine("lm") %>%
+  fit(formula = ForestArea ~ EmissionValue + TemperatureChange,data = data) %>% glance()
+```
+
+
+## extrapolation
+```{r tidy, echo=FALSE}
+fit <- linear_reg() %>%
+  set_engine("lm") %>%
+  fit(formula = ForestArea ~ EmissionValue + TemperatureChange, data = data) 
+
+fit %>% tidy()
+```
+
+## RESIDUAL
+
+```{r residual-plot-Air-Pollution, echo=FALSE}
+augment(fit$fit) %>%
+  ggplot(aes(x = ForestArea, y = EmissionValue)) +
+  geom_point(aes(color=.resid)) +
+  geom_smooth(method = "lm") +
+  scale_color_gradient2(mid = "gray80") +
+  labs(x = "ForestArea", y = "AirPollution", color = "Residuals") +
+  scale_y_continuous(labels = scales::comma)
+```
+
+## residual- Temperature Change
+```{r qwerty6, echo=FALSE}
+augment(fit$fit) %>%
+  ggplot(aes(x = ForestArea, y = TemperatureChange)) +
+  geom_point(aes(color=.resid)) +
+  geom_smooth(method = "lm") +
+  scale_color_gradient2(mid = "gray80") +
+  labs(x = "ForestArea", y = "Temparture Change", color = "Residuals") +
+  scale_y_continuous(labels = scales::comma)
+```
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
