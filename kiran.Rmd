@@ -64,6 +64,27 @@ plot_ly(def_30, type='choropleth', locations=def_30$code, z=def_30$year, text=de
 
 ```
 
+This part deals with the questions related to forest deforestation and environment:
+
+* Deforestation
+  + Which countries are the main drivers of deforestation?
+  + What are the trends? (by continents)
+  + Prediction of how many years it would take until all forests are lost based on the current rate of change.
+*Relation to other environmental issues
+  + Prediction of how much forest area has to be further increased to tackle the greenhouse gas emissions (what percentage of greenhouse gas decrease will occur if forest area increases).  
+  
+## Drivers of deforstation and forests in the future
+
+Here the visualization of forest is shown country wise by hovering over it.
+
+* Information showed for each country
+  + Deforestation is last 30 years
+  + Current forest area in (i unit =1000 hac) 
+  + Number of years in which complete forest area will be lost depending on the deforestation of specific country in last 3 decades.
+
+countries are being shown in different colors depending on whether they are main drivers of deforestation or not.if a country has lost more than 30 percent of its forest in the last 3 decades then the country is being labeled as main drivers of deforestation else as not drivers.
+  
+
 
 ```{r  echo=FALSE,message=FALSE,warning=FALSE}
 world <- map_data("world") %>% group_by(region) %>% filter(row_number()==1)
@@ -79,6 +100,14 @@ plot_geo(def_30_world, lat = ~lat, lon = ~long) %>% add_markers(text = ~paste(na
 
 
 ```
+
+## Deforestation treands by continents 
+
+Below Bargraph plot shows trends in the deforestation over the last three decades over 5 continents 
+
+note : here Americas refer to North and South America. while  oceania refer to Australasia, Melanesia, Micronesia and Polynesia.
+
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
 trends<- inner_join(world,intervals_1,by="name") %>% inner_join(Forest_Area,by="name") %>% select(name,year,`1d_deforestation`,`1d_expansion`,`1d_afforestation`,`1e_reforestation`,`1d_nat_exp`)
@@ -100,6 +129,15 @@ plot_ly(trends_def,x=~year,y=~t_deforestation,color = trends_def$continent) %>% 
                       
 
 ```
+
+## Required forests for Current Co2 emmission.
+
+Below world map plot shows the amount of forest area required to tackle the current Co2 emissions country wise.
+As we had only Co2 emission data for every country from 1990-2018 , we have used Arima model time series prediction to predict future Co2 emission.
+for this purpose a function was created to predict future Co2 emission for every country.
+
+By taking into consideration, The amount of metric tons Co2 absorbed by forest (that is one acre of new forest can sequester about 2.5 tons of carbon annually).the predicted Co2 value is used to find the amount of additional forest required. 
+
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
