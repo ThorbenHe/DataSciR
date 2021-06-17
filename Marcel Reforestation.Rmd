@@ -224,6 +224,8 @@ trends<- inner_join(world,intervals_1,by="name") %>%
 trends$continent <- countrycode(sourcevar = trends$name,
                             origin = "country.name",
                             destination = "continent")
+trends$year[trends$year=="2010-2015"]<-"2010-2020"
+trends$year[trends$year=="2015-2020"]<-"2010-2020"
 
 trends_ref<-trends %>% 
   group_by(year,continent) %>% summarize(t_reforestation =sum(as.numeric(`1e_reforestation`),na.rm = TRUE))
