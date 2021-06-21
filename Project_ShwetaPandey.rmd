@@ -243,7 +243,7 @@ cor(x =mergedData$TotalForestArea, y = mergedData$TotalAirQuality, use = "everyt
 
 ```{r temperature-change-data, echo=FALSE}
 
-temp_change <- read_csv("FAOSTAT_Temp_country.csv")
+temp_change <- read_csv("FAOSTAT_data_temp_change.csv")
 glimpse(temp_change)
 
 colnames(temp_change)[colnames(temp_change) == "Value"] <- "TemperatureChange"
