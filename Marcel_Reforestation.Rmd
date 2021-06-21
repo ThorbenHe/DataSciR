@@ -14,6 +14,8 @@ intervals <- tibble(read_csv("FRA_2020_data/Intervals_2021_05_05.csv"))
 fra <- read_csv("FRA_2020_data/FRA_Years_2021_05_05.csv")
 ```
 
+In this part we want to dig in deeper into the topic of the reforestation by analyzing which countries are the main drivers, whether there is a correlation between reforestation and deforestation and showing the trends over continents.
+
 ### Which countries are the main drivers of reforestation?
 
 ```{r, include=FALSE}
@@ -129,6 +131,7 @@ ggplot() +
     scale_x_continuous(breaks=c()) +
 labs(x = NULL, y = NULL, title = "Increase in reforestation between 1990 and 2020 in %", fill = "")
 ```
+
 ```{r, include = FALSE, warning = FALSE}
 increase$code <- countrycode(increase$name, origin = "country.name", destination = "iso3c")
   
@@ -237,13 +240,31 @@ Spear
 ```
 
 However with 0.451 it doesn't show a significant correlation, which means, at least in the last 30 years, countries did not really try "to make up" for a human driven deforestation. 
+ 
+```{r}
+library(ppsr)
+
+ggplot(corref, aes(totalref, totaldef)) +
+  geom_tile(aes(fill = pps)) +
+  geom_text(aes(label = round(pps, 2), color = pps > 0.8), size = 12 / .pt) +
+  scale_fill_distiller(palette = "Greens", direction = 1) +
+  scale_color_manual(values = c("Green", "white")) +
+  guides(color = FALSE) +
+  labs(
+    x = NULL, y = NULL, fill = "Predictive\nPower\nScore", title = "PPS matrix for relation between deforestation & reforestation",
+    subtitle = "A value represents the predictive power that the\nx variable has on the y variable."
+  ) +
+  coord_equal() +
+  theme(axis.text.x = element_text(angle = 325, hjust = 0, vjust = 0)) +
+  theme(plot.subtitle = element_text(size = rel(1))) + 
+  theme_minimal()
+```
 
 ### What are the trends by continents?
 
 ```{r, include = FALSE}
 intervals_1<-intervals %>% 
 mutate(`1e_reforestation`=case_when(year %in% c("1990-2000","2000-2010")~`1e_reforestation`*10,year %in% c("2010-2015","2015-2020")~`1e_reforestation`*5))
-
 ```
 
 
