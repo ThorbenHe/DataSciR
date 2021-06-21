@@ -14,7 +14,7 @@ intervals <- tibble(read_csv("FRA_2020_data/Intervals_2021_05_05.csv"))
 fra <- read_csv("FRA_2020_data/FRA_Years_2021_05_05.csv")
 ```
 
-Which countries are the main drivers of reforestation?
+### Which countries are the main drivers of reforestation?
 
 ```{r, include=FALSE}
 reforestation <- intervals %>% 
@@ -44,7 +44,7 @@ refplot <- reforestation %>%
   labs(
     y = "Increase between 1990-2020 (1000 ha)",
     x = NULL,
-    title = "Top 20 countries total reforestation between 1990 and 2020"
+    title = "Top 20 countries of total reforestation between 1990 and 2020"
   ) +
   coord_flip()
 ```
@@ -80,7 +80,7 @@ increase %>%
 ```
 
 
-```{r, include = FALSE}
+```{r, include = FALSE, warning = FALSE}
 increase$name[increase$name=="Bolivia (Plurinational State of)"]<-"Bolivia"
 increase$name[increase$name=="Brunei Darussalam"]<-"Brunei"
 increase$name[increase$name=="Cabo Verde"]<-"Cape Verde"
@@ -109,7 +109,7 @@ increase$name[increase$name=="Eswatini"]<-"Swaziland"
 ```
 
 
-```{r, echo=FALSE}
+```{r, include = FALSE, warning = FALSE}
 world <- map_data("world") %>%
      filter(region != "Antarctica")  
 
@@ -129,13 +129,13 @@ ggplot() +
     scale_x_continuous(breaks=c()) +
 labs(x = NULL, y = NULL, title = "Increase in reforestation between 1990 and 2020 in %", fill = "")
 ```
-```{r, include = FALSE}
+```{r, include = FALSE, warning = FALSE}
 increase$code <- countrycode(increase$name, origin = "country.name", destination = "iso3c")
   
 ```
 
 (source of idea https://plotly.com/r/choropleth-maps/#introduction-main-parameters-for-choropleth-outline-maps)
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning = FALSE}
 
 l <- list(color = toRGB("grey"), width = 0.5)
 
@@ -155,7 +155,7 @@ colorbar(ticksuffix = '%') %>%
 ```
 
 
-Is there a correlation between reforestation and deforestation?
+### Is there a correlation between reforestation and deforestation?
 
 ```{r, include = FALSE}
 deforestation <- intervals %>% 
@@ -179,7 +179,7 @@ corref <- reforestation %>%
 
 First of all we want to show the relation of total reforestation and deforestation in the last 30 years, to get a first glimpse.
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning = FALSE, message = FALSE}
 ggplot(data = corref, mapping = aes(x = totalref, y = totaldef)) +
   geom_point() +
   geom_smooth(se = FALSE) +
@@ -192,7 +192,7 @@ ggplot(data = corref, mapping = aes(x = totalref, y = totaldef)) +
 
 As there are many outliers with either very high deforestation/reforestation figures, we can zoom in by changing the scale.
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning = FALSE, message = FALSE}
 ggplot(data = corref, mapping = aes(x = totalref, y = totaldef)) +
   geom_point() +
   scale_x_continuous(limits = c(100, 5000)) +
@@ -220,7 +220,7 @@ shapiro.test(corref$totaldef)
 
 ```
 
-The values are below 0.05, the data for both, reforestation and deforestation, significantly deviate from a normal distribution. A result which was already highlited by the graph.
+The values are below 0.05 for both, reforestation and deforestation, the data significantly deviate from a normal distribution. A result which was already highlited by the graph.
 
 As the data is therefore not linear, we should choose the Spearman method to calculate the correlation.
 
@@ -230,7 +230,7 @@ pear <- cor.test(corref$totalref, corref$totaldef, method = 'pearson')
 pear
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning = FALSE}
 corrr::correlate(corref, quiet = TRUE, method = "spearman") 
 Spear <- cor.test(corref$totalref, corref$totaldef, method = 'spearman')
 Spear
@@ -238,7 +238,7 @@ Spear
 
 However with 0.451 it doesn't show a significant correlation, which means, at least in the last 30 years, countries did not really try "to make up" for a human driven deforestation. 
 
-What are the trends? (continents)
+### What are the trends by continents?
 
 ```{r, include = FALSE}
 intervals_1<-intervals %>% 
@@ -255,7 +255,7 @@ colnames(world)[5]<-"name"
   
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, message = FALSE}
 trends<- inner_join(world,intervals_1,by="name") %>% 
   select(name,year,`1e_reforestation`)
 trends$continent <- countrycode(sourcevar = trends$name,
