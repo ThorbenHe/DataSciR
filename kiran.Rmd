@@ -23,7 +23,10 @@ intervals_1<-intervals %>% mutate(`1d_deforestation`=case_when(year %in% c("1990
 
 intervals_2<- intervals_1%>% select(regions,name,`1d_deforestation`,`1d_expansion`,`1d_afforestation`,`1e_reforestation`,`1d_nat_exp`)  %>% group_by(name,regions) %>% summarize(t_deforestation =sum(as.numeric(`1d_deforestation`),na.rm = TRUE),t_expansion=sum(as.numeric(`1d_expansion`),na.rm = TRUE),t_afforestation =sum(as.numeric(`1d_afforestation`),na.rm = TRUE),t_reforestation =sum(as.numeric(`1e_reforestation`),na.rm = TRUE),t_nat_exp =sum(as.numeric(`1d_nat_exp`),na.rm = TRUE))
 
-def_30<-inner_join(intervals_2,Forest_Area,by="name") %>% mutate(t_deforestation=case_when((t_deforestation==0.00 & `1990`-`2020`>0) ~ `1990`-`2020`,(t_deforestation>0.00) ~t_deforestation )) %>% mutate(year= as.integer((30*`2020`)/t_deforestation)) %>% mutate(test_2020=t_expansion-t_deforestation+`1990`) %>%   mutate(percent_change_1=(t_deforestation/`1990`)*100) %>%  mutate(drivers=case_when(percent_change_1<30 ~ "not Drivers",percent_change_1>30  ~"Main Drivers"))
+def_30<-inner_join(intervals_2,Forest_Area,by="name") %>%mutate(t_deforestation=case_when(t_deforestation==0.00  ~ `1990`-`2020`,t_deforestation>0.00 ~ t_deforestation)) %>% mutate(t_deforestation=case_when(t_deforestation<0.00  ~ 0.00,t_deforestation>=0.00 ~ t_deforestation))%>% mutate(year= as.integer((30*`2020`)/t_deforestation))
+
+
+def_30<-def_30 %>% mutate(percent_change_1=(t_deforestation/`1990`)*100) %>%  mutate(drivers=case_when(percent_change_1<30 ~ "not Drivers",percent_change_1>30  ~"Main Drivers")) %>% mutate(percent_change_1=format(round(percent_change_1,2),nsmall=2))
 
 def_30$name[def_30$name=="Bolivia (Plurinational State of)"]<-"Bolivia"
 def_30$name[def_30$name=="Brunei Darussalam"]<-"Brunei"
@@ -47,23 +50,6 @@ def_30$name[def_30$name=="United States of America"]<-"USA"
 def_30$name[def_30$name=="Venezuela (Bolivarian Republic of)"]<-"Venezuela"
 def_30$name[def_30$name=="Viet Nam"]<-"Vietnam"
 ```
-
-
-```{r echo=FALSE,  message=FALSE,warning=FALSE}
-
-def_30$code <- countrycode(sourcevar = def_30$name,
-                                origin = "country.name",
-                                destination = "iso3c")
-
-plot_ly(def_30, type='choropleth', locations=def_30$code, z=def_30$year, text=def_30$name, colorscale="Green") %>% colorbar(title = "years") %>% layout(
-    title = 'Ignore this graph trying something on it '
-  )
-
-
-
-
-```
-
 This part deals with the questions related to forest deforestation and environment:
 
 * Deforestation
@@ -73,33 +59,35 @@ This part deals with the questions related to forest deforestation and environme
 *Relation to other environmental issues
   + Prediction of how much forest area has to be further increased to tackle the greenhouse gas emissions (what percentage of greenhouse gas decrease will occur if forest area increases).  
   
+  
 ## Drivers of deforstation and forests in the future
 
 Here the visualization of forest is shown country wise by hovering over it.
 
 * Information showed for each country
+  + Percentage of forest lost in last three decades 
   + Deforestation is last 30 years
   + Current forest area in (i unit =1000 hac) 
   + Number of years in which complete forest area will be lost depending on the deforestation of specific country in last 3 decades.
-
-countries are being shown in different colors depending on whether they are main drivers of deforestation or not.if a country has lost more than 30 percent of its forest in the last 3 decades then the country is being labeled as main drivers of deforestation else as not drivers.
   
+Countries are being showed in different colors depending on the percentage of of forest lost in last three decades. countries with most percentage of forest lost are the main drivers of deforestation
 
+note: for some countries deforestation data was shown as zero  or not available , for them deforestation was found by finding the difference in forest area between 1990 and 2020
+```{r echo=FALSE,  message=FALSE,warning=FALSE}
 
-```{r  echo=FALSE,message=FALSE,warning=FALSE}
-world <- map_data("world") %>% group_by(region) %>% filter(row_number()==1)
-colnames(world)[5]<-"name"
-def_30_world<-inner_join(world,def_30,by="name")
-plot_geo(def_30_world, lat = ~lat, lon = ~long) %>% add_markers(text = ~paste(name,paste("Deforestation in last 30 years:",t_deforestation ), paste("current forest area:",`2020` ),paste("Forest land will be lost in", year) ,sep = "<br />"),color=~drivers, symbol = I("circle"), size = I(8), hoverinfo = "text") %>% layout(title="Deforestation Analysis",geo=list(showland = TRUE,
-    landcolor = toRGB("gray95"),
-    subunitcolor = toRGB("gray85"),
-    countrycolor = toRGB("gray85"),
-    countrywidth = 0.5,
-    subunitwidth = 0.5))
+def_30$code <- countrycode(sourcevar = def_30$name,
+                                origin = "country.name",
+                                destination = "iso3c")
+
+plot_ly(def_30, type='choropleth', locations=~def_30$code, z=~def_30$percent_change_1, text=~paste(name,paste("Deforestation in last 30 years:",t_deforestation ), paste("current forest area:",`2020` ),paste("Year in which Forest area will be lost:", year) ,sep = "<br />"),colorscale="Rainbow")  %>% colorbar(title = "Percenate of forest lost <br />from deforestation(1 Unit=1000 ha)")%>% layout(
+    title = 'Deforestation Analysis in last 3 decades'
+  ) 
+
 
 
 
 ```
+
 
 ## Deforestation treands by continents 
 
@@ -109,7 +97,9 @@ note : here Americas refer to North and South America. while  oceania refer to A
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-
+world <- map_data("world") %>% group_by(region) %>% filter(row_number()==1)
+colnames(world)[5]<-"name"
+def_30_world<-inner_join(world,def_30,by="name")
 trends<- inner_join(world,intervals_1,by="name") %>% inner_join(Forest_Area,by="name") %>% select(name,year,`1d_deforestation`,`1d_expansion`,`1d_afforestation`,`1e_reforestation`,`1d_nat_exp`)
 trends$continent <- countrycode(sourcevar = trends$name,
                             origin = "country.name",
@@ -162,7 +152,7 @@ ghg_pre<-gh1 %>% rowwise() %>% mutate(new_area=as.numeric(predic_2021(name))/2.5
 
 
 plot_ly(ghg_pre, type='choropleth', locations=ghg_pre$code, z=ghg_pre$new_area, text=ghg_pre$name, colorscale="Green") %>% colorbar(title = "Forest Area <br />Required(1 Unit=1000 ha)") %>% layout(
-    title = 'New forest area required <br />to compnsate present emission'
+    title = 'New forest area required <br />to componsate present emission'
   )
 
 ```
