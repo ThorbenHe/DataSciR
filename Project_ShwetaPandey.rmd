@@ -1,5 +1,5 @@
 ---
-title: "Data Science with R:Project"
+title: "Data Science with R: Project"
 author: "Shweta"
 date: "5/25/2021"
 output: html_document
@@ -8,9 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = 'C:/Users/Dell/Desktop/SoSe21/DSwithR/Project/D')
-# install.packages("janitor")
-# install.packages("psych")
-# install.packages("ggthemes")
+
 library(psych)
 library(tidyverse)
 library(ggthemes)
@@ -19,10 +17,29 @@ library(extrafont)
 library(RColorBrewer)
 library(plotly)
 library(tidymodels)
+
+options(scipen=999)
 ```
 
 
-## Load data
+### This part of our project answers the following questions:
+
+* What was the global forest development over the last 30 years? 
+  + What are the trends? (globally)
+* Is there a correlation between air pollution and the amount of forest in a country / globally?
+  + Which countries have the most air pollution?
+  
+### Overview and preprocessing of the available data
+
+The first data set is about the forest cover of the continents.
+[Forest land of continents](http://www.fao.org/faostat/en/#data/GF)
+
+
+First we preprocess the data set, we change the names of te columns we later need and make them more readable
+
+* The 'Value' column has been change to ForestSize to make it more understandable
+* The 'Area' column has been renamed as Continent to give more meaningful information 
+
 
 ```{r read-dataset, echo=FALSE}
 # forest cover of continents dataset
@@ -36,16 +53,15 @@ forest_continents
 
 ```
 
-## structure and dimension of the dataset
 
 ```{r structure-and-dimension-of-data, echo=FALSE}
 str(forest_continents)
 dim(forest_continents)
 ```
+Here we have pre-processed out data set
 
+* We have imputed the missing values by dropping them 
 
-
-## DATA WRANGLING
 ```{r data-wrangling, echo=FALSE}
 newData <- forest_continents %>%
   drop_na() %>% 
@@ -59,38 +75,24 @@ newData
 ```
 
 
+
 ## EXPLORATORY DATA ANALYSIS
 
 + Plot showing the forest cover of the continents
 + the plot shows that the forest cover of the continents has decreased in the last 30 years
-```{r line-plot, echo=FALSE}
-newData %>% 
-  ggplot(aes(x = Year, y = AvgforestSize,color = Continent))+
-  geom_line(size = 1.5, alpha = 0.7)+
-  labs(title = "Average Forest Size of continents (1990-2020)",
-       subtitle = "How the forest size (avg) has changed over the last 30 years?",
-       x = "Year",
-       y = "Average Forest Size (ha)",
-       color = "Continent")+
-  theme_fivethirtyeight()+
-  theme(axis.title = element_text(),text = element_text(family = "Arial"))+
-  theme(plot.subtitle = element_text(size = rel(0.8), face = "italic"))+ 
-  scale_color_brewer(palette = "Dark2")
-```
-
 
 
 ```{r forest-continents-scatter-plot, echo=FALSE}
 newData  %>% 
   ggplot(aes(x = Year, y = ForestSize)) +
-  geom_point(aes(color = Continent), size = 4, shape = 16, alpha = 0.7) +
+  geom_point(aes(color = Continent), size = 3, shape = 16, alpha = 0.7) +
   scale_y_continuous(limits = c(100000, 1800000))+
   labs(
     x = "Years",
     y = "Forest land(1000ha)",
     title = "World forest land through the decades"
   ) +
-  theme_minimal()
+  theme_fivethirtyeight()
   # scale_color_gradient(low = "#0091ff", high = "#f0650e")
 
 
@@ -175,24 +177,6 @@ forest_countries %>%
   
 ```
 
-## FOREST DATA OVER THE YEARS
-```{r maximum-forest-cover-plot, echo=FALSE}
-forest_countries %>% 
-  drop_na() %>% 
-  group_by(Year) %>%
-  summarize(max_forest_size = max(ForestArea)) %>% 
-  as.data.frame() %>% 
-  ggplot(aes(x = Year, y =max_forest_size , fill = max_forest_size)) + 
-  geom_col()+
-  labs(
-    x = "Year",
-    y = "Forest Size (ha)",
-    title = "Maximum Forest cover over the last 30 years"
-  ) +
-  scale_x_continuous(breaks = seq(1990,2020,10)) +
-  scale_y_continuous(labels = scales::comma)
-```
-#####################################################################################################################
 
 ## LOAD SECOND DATASET
 ```{r air-pollution-data, echo=FALSE}
@@ -305,7 +289,7 @@ augment(fit$fit) %>%
   geom_point(aes(color=.resid)) +
   geom_smooth(method = "lm") +
   scale_color_gradient2(mid = "gray80") +
-  labs(x = "ForestArea", y = "AirPollution", color = "Residuals") +
+  labs(x = "Forest Area", y = "AirPollution", color = "Residuals") +
   scale_y_continuous(labels = scales::comma)
 ```
 
@@ -316,14 +300,22 @@ augment(fit$fit) %>%
   geom_point(aes(color=.resid)) +
   geom_smooth(method = "lm") +
   scale_color_gradient2(mid = "gray80") +
-  labs(x = "ForestArea", y = "Temparture Change", color = "Residuals") +
+  labs(x = "Forest Area", y = "Temparture Change", color = "Residuals") +
   scale_y_continuous(labels = scales::comma)
 ```
 
+```{r Global-Air-Quality-plot, echo=FALSE}
 
+AirPollution %>% 
+  group_by(Country,Year) %>% 
+  summarise(AirQuality = mean(AirQuality)) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = Year, y = AirQuality, color = AirQuality))+
+  geom_point()+
+  colorspace::scale_color_continuous_sequential("Magenta")+
+  theme_gray()
 
-
-
+```
 
 
 ## Top 10 countries with worst air quality
@@ -336,8 +328,32 @@ AirPollution %>%
   ungroup() %>% 
   arrange(desc(avgAirQuality)) %>%
   top_n(10) %>% 
-  ggplot(aes(y = avgAirQuality, x = reorder(Country, avgAirQuality))) +
-  geom_col(fill = "#869c19") +
+  ggplot(aes(x = avgAirQuality, y = reorder(Country, avgAirQuality))) +
+  geom_col(fill = "#DE8971", width = 0.5) +
+  theme(legend.position = "none") +
+  labs(
+    x = "Country",
+    y = "Average Air Quality",
+    title = "Top 10 countries with worst air quality ",
+    subtitle = "Time period: 1990 - 2020"
+  )+
+  scale_x_continuous(labels = scales::comma) +
+  theme_excel_new()+
+  theme(axis.title.x = element_text(color = "Black" ), text = element_text(family="Arial"))
+```
+## best air quality
+
+```{r Air-Pollution-plot-least, echo=FALSE}
+AirPollution %>% 
+  drop_na() %>% 
+  group_by(Country) %>% 
+  summarize(avgAirQuality = mean(AirQuality)) %>% 
+  as.data.frame() %>% 
+  ungroup() %>% 
+  arrange(desc(avgAirQuality)) %>%
+  top_n(-10) %>% 
+  ggplot(aes(x = avgAirQuality, y = reorder(Country, avgAirQuality))) +
+  geom_col(fill = "#70AF85", width = 0.6) +
   theme(legend.position = "none") +
   labs(
     x = "Average Air Quality",
@@ -345,12 +361,61 @@ AirPollution %>%
     title = "Top 10 countries with worst air quality ",
     subtitle = "Time period: 1990 - 2020"
   )+
-  scale_y_continuous(labels = scales::comma) +
-  theme_minimal()+
-  theme(axis.title.x = element_text(color = "Black" ), text = element_text(family="Arial")) 
+  scale_x_continuous(labels = scales::comma) +
+  theme_excel_new()+
+  theme(axis.title.x = element_text(color = "Black" ), text = element_text(family="Arial"))
   
 
 ```
+
+
+
+
+```{r India-plot, echo=FALSE}
+
+AirQuality_India <- AirPollution %>% 
+  group_by(Year) %>% 
+  filter(Country == "India") %>% 
+  summarize(AirQuality = mean(AirQuality)) %>% 
+  ungroup() 
+  
+
+
+AirQuality_India %>% 
+  ggplot(aes(x = Year, y = AirQuality))+
+  geom_point(color =  "#79198a", size = 5, alpha = 0.6)+
+  geom_line(size = 1.3, alpha = 0.6)+
+  labs(title = "Air Quality of India",
+       subtitle = "Time period: 1990-2019",
+       x = "Year",
+       y = "Air Quality (Micrograms per cubic metre)")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text(),text = element_text(family = "Arial"))+
+  theme(plot.subtitle = element_text(size = rel(0.8), face = "italic"))
+```
+
+```{r nauru-plot, echo=FALSE}
+
+AirQuality_Nauru <- AirPollution %>% 
+  group_by(Year) %>% 
+  filter(Country == "Nauru") %>% 
+  summarize(AirQuality = mean(AirQuality)) %>% 
+  ungroup() 
+
+AirQuality_Nauru %>% 
+  ggplot(aes(x = Year, y = AirQuality))+
+  geom_point(color =  "#53ab0f", size = 5, alpha = 0.6)+
+  geom_line(size = 1.3, alpha = 0.6)+
+  labs(title = "Air Quality of Nauru through the years",
+       subtitle = "Time period: 1990-2019",
+       x = "Year",
+       y = "Air Quality (Micrograms per cubic metre)")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text(),text = element_text(family = "Arial"))+
+  theme(plot.subtitle = element_text(size = rel(0.8), face = "italic"))
+```
+
+
 
 
 
