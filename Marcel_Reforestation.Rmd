@@ -180,7 +180,7 @@ corref <- reforestation %>%
  select(name,totalref, totaldef)
 ```
 
-First of all we want to show the relation of total reforestation and deforestation in the last 30 years, to get a first glimpse.
+First of all we want to show the relation of total reforestation and deforestation in the last 30 years, to get a first impression
 
 ```{r, echo=FALSE, warning = FALSE, message = FALSE}
 ggplot(data = corref, mapping = aes(x = totalref, y = totaldef)) +
@@ -193,7 +193,7 @@ ggplot(data = corref, mapping = aes(x = totalref, y = totaldef)) +
   labs(x = "total reforestation (1000ha)", y = "total deforestation (1000 ha)")
 ```
 
-As there are many outliers with either very high deforestation/reforestation figures, we can zoom in by changing the scale.
+As there are many outliers with either very high deforestation/reforestation figures, we zoom in by changing the scale.
 
 ```{r, echo=FALSE, warning = FALSE, message = FALSE}
 ggplot(data = corref, mapping = aes(x = totalref, y = totaldef)) +
@@ -220,10 +220,9 @@ With the Shapiro-Wilk test we want to show the normality of our data.
 ```{r, echo=FALSE}
 shapiro.test(corref$totalref)
 shapiro.test(corref$totaldef)
-
 ```
 
-The values are below 0.05 for both, reforestation and deforestation, the data significantly deviate from a normal distribution. A result which was already highlited by the graph.
+The values are below 0.05 for both, reforestation and deforestation, the data significantly deviate from a normal distribution. A result which was already highlighted by the graph.
 
 As the data is therefore not linear, we should choose the Spearman method to calculate the correlation.
 
@@ -242,9 +241,12 @@ Spear
 However with 0.451 it doesn't show a significant correlation, which means, at least in the last 30 years, countries did not really try "to make up" for a human driven deforestation. 
  
 ```{r}
+#source code along session 6
 library(ppsr)
 
-ggplot(corref, aes(totalref, totaldef)) +
+pps <- score_df(corref %>% select(totalref, totaldef))
+
+ggplot(pps, aes(x, y)) +
   geom_tile(aes(fill = pps)) +
   geom_text(aes(label = round(pps, 2), color = pps > 0.8), size = 12 / .pt) +
   scale_fill_distiller(palette = "Greens", direction = 1) +
@@ -259,6 +261,8 @@ ggplot(corref, aes(totalref, totaldef)) +
   theme(plot.subtitle = element_text(size = rel(1))) + 
   theme_minimal()
 ```
+
+
 
 ### What are the trends by continents?
 
