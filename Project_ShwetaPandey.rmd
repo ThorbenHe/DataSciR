@@ -92,7 +92,7 @@ newData  %>%
     y = "Forest land(1000ha)",
     title = "World forest land through the decades"
   ) +
-  theme_fivethirtyeight()
+  theme_gray()
   # scale_color_gradient(low = "#0091ff", high = "#f0650e")
 
 
@@ -223,38 +223,14 @@ cor(x =mergedData$TotalForestArea, y = mergedData$TotalAirQuality, use = "everyt
 ```
 
 
-## Load temperature change data
-
-```{r temperature-change-data, echo=FALSE}
-
-temp_change <- read_csv("FAOSTAT_data_temp_change.csv")
-glimpse(temp_change)
-
-colnames(temp_change)[colnames(temp_change) == "Value"] <- "TemperatureChange"
-colnames(temp_change)[colnames(temp_change) == "Area"] <- "Country"
-
-temp_change <- temp_change %>% 
-  drop_na() %>% 
-  group_by(Country,Months) %>% 
-  select(c("Country", "Year", "Months","TemperatureChange")) %>% 
-  glimpse()
-
-```
-
-
 ## REGRESSION ANALYSIS
 
 ```{r regression, echo=FALSE}
 # merge  data sets and remove missing values
 
-data1 <-  merge(forest_countries,AirPollution,by=c("Country","Year")) %>%
+data <-  merge(forest_countries,AirPollution,by=c("Country","Year")) %>%
   drop_na() %>% 
   select(c("Country","Year","ForestArea","AirQuality"))
-
-
-data <- merge(data1, temp_change, by=c("Year","Country")) %>% 
-  select(c("Country","Year","TemperatureChange","ForestArea","AirQuality")) %>% 
-  glimpse()
  
 ```
 
@@ -263,12 +239,12 @@ data <- merge(data1, temp_change, by=c("Year","Country")) %>%
 ```{r build-model, echo=FALSE}
 linear_reg() %>%
   set_engine("lm") %>%
-  fit(formula = ForestArea ~ AirQuality + TemperatureChange, data = data) -> model
+  fit(formula = ForestArea ~ AirQuality, data = data) -> model
 model
 
 linear_reg() %>%
   set_engine("lm") %>%
-  fit(formula = ForestArea ~ AirQuality + TemperatureChange,data = data) %>% glance()
+  fit(formula = ForestArea ~ AirQuality, data = data) %>% glance()
 ```
 
 
@@ -276,7 +252,7 @@ linear_reg() %>%
 ```{r tidy, echo=FALSE}
 fit <- linear_reg() %>%
   set_engine("lm") %>%
-  fit(formula = ForestArea ~ AirQuality + TemperatureChange, data = data) 
+  fit(formula = ForestArea ~ AirQuality, data = data) 
 
 fit %>% tidy()
 ```
@@ -293,16 +269,7 @@ augment(fit$fit) %>%
   scale_y_continuous(labels = scales::comma)
 ```
 
-## residual- Temperature Change
-```{r qwerty6, echo=FALSE}
-augment(fit$fit) %>%
-  ggplot(aes(x = ForestArea, y = TemperatureChange)) +
-  geom_point(aes(color=.resid)) +
-  geom_smooth(method = "lm") +
-  scale_color_gradient2(mid = "gray80") +
-  labs(x = "Forest Area", y = "Temparture Change", color = "Residuals") +
-  scale_y_continuous(labels = scales::comma)
-```
+
 
 ```{r Global-Air-Quality-plot, echo=FALSE}
 
@@ -414,6 +381,7 @@ AirQuality_Nauru %>%
   theme(axis.title = element_text(),text = element_text(family = "Arial"))+
   theme(plot.subtitle = element_text(size = rel(0.8), face = "italic"))
 ```
+
 
 
 
