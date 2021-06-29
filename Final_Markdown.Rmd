@@ -1,11 +1,14 @@
 ---
-title: "Project Notebook"
+title: "Multi-Perspective and Predictive Analysis of Forests; the Issues, Challenges and Global Trends"
+subtitle: "Project Notebook"
 author: "Kiran Babu Thatha, Marcel Schulte, Obinna Patrick Nkwocha, Shweta Pandey, Thorben Hebbelmann"
 date: "`r Sys.Date()`"
 output: 
   html_document:
     toc: true
     toc_float: true
+    number_sections: true
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -32,47 +35,144 @@ library(data.table)
 library(gifski)
 
 
-# set theme
-#theme_set(
-#  theme_minimal(base_size = 18) +
-#    theme(plot.title = element_text(size = rel(1.05)))
-#)
+#set theme
+theme_set(theme_minimal())
 
 options(scipen=999)
 ```
 
-# Overview & Motivation
+# Motivation
 
-The existence of forests is essential for our life on Earth. By covering around 31 percent of the world’s total land area, forests provide a retreat and home to over 80 percent of land animals and countless partially even undiscovered plants. One can say that forests are the backbone of entire ecosystems. A significant part of the oxygen we breathe is provided by the trees, while they also absorb about 25 percent of greenhouse gases. Also economically we are dependent on forests as about 1.6 billion people around the world earn their livelihoods with forests. Furthermore, forests provide 40 percent of today’s global renewable energy supply, as much as solar, hydroelectric and wind power combined.
+The existence of forests is essential for our life on Earth. By covering around 31 percent of the world’s total land area, forests provide a retreat and home to over 80 percent of land animals and countless partially even undiscovered plants. One can say that forests are the backbone of entire ecosystems. A significant part of the oxygen we breathe is provided by the trees, while they also absorb about 25 percent of greenhouse gases. Also economically we are dependent on forests as the livelihoods of about 1.6 billion people around the world are directly or indirectly connected to forests. Furthermore, forests provide 40 percent of today’s global renewable energy supply, as much as solar, hydroelectric and wind power combined.
 Despite these utilities, forestation across the world has faced several challenges ranging from wildfire, human-driven deforestation, poor management and poor conversation in general. However, a loss of whole forests would mean severe consequences to humanity and life on Earth.  
 
-With this project we seek to answer important questions that address these challenges. We want to figure out the causes of destruction of forests, highlight their importance to our environment and predict trends around reforestation/deforestation. Moreover, we hope to show how we can tackle climate change by reforestation, in particular, how an increase in the forest’s area will help to increase the buffer of sustainability.
+With this project we seek to answer important questions that address these challenges. We want to figure out the causes of destruction of forests, highlight their importance to our environment and predict trends around reforestation/deforestation. Moreover, we hope to show how we can tackle climate change by reforestation, in particular, how an increase in forest area will help to increase the buffer of sustainability.
 For the statistics so far, see our [reference](https://unece.org/forestry/news/10-facts-fall-love-forests#:~:text=1) (Opened on 07th of May, 2021).
 
-# Global Forest Development
+# Overview
 
-### This part of our project answers the following questions:
+To begin with we want to give a general overview of global forest development over the last 30 years. Afterwards we want to dig in deeper into the topics of deforestation and reforestation by extracting the main driver countries, showing trends and investigating in possible correlations which is leading to a crucial prediction in how many years forest would be lost, if humankind continues to act as it has in the past. 
+In the next chapter, our analysis leads us into the area of forest destruction by natural causes. After a comprehensive overview and focusing on countries most affected by forest destruction, we want to examine whether there is a correlation between rising temperatures and wildfires and additionally try to predict where and when wildfires are likely to occur.
+In our final chapter we put our forest data in relation to other environmental issues as air pollution, greenhouse gas emissions and the carbon storage of forests resulting in a prediction of how much forest area has to be further increased to tackle all greenhouse gas emissions.
 
-* What was the global forest development over the last 30 years? 
-  + What are the trends? (globally)
-* Is there a correlation between air pollution and the amount of forest in a country / globally?
-  + Which countries have the most air pollution?
-  
-### Overview and preprocessing of the available data
+# Related Work
 
-The first data set is about the forest cover of the continents.
-[Forest land of continents](http://www.fao.org/faostat/en/#data/GF)
+# Datasets & Preprocessing
 
+Following Datasets will help us to answer our questions:
 
-First we preprocess the data set, we change the names of te columns we later need and make them more readable
+## [FAO. 2020. Global Forest Resources Assessment 2020](https://fra-data.fao.org/WO/fra2020/home/)  
+The data of the Global Forest Resources assessment (FAO) is containing 3 datasets. Data on forest development for the intervals between 1990 - 2020, which we mainly use to answer questions around reforestation and deforestation, as well as data on forest disturbance for the period 2000-2017 and data on total forest areas.
+  1.1 Data on forest development:
+```{r echo=FALSE, message=FALSE}
+intervals <- tibble(read_csv("FRA_2020_data/Intervals_2021_05_05.csv"))
+annual <- tibble(read_csv("FRA_2020_data/Annual_2021_05_05.csv"))
+intervals %>% drop_na() %>% select(name, year, contains('1'))
+```
+  1.2 Data on forest disturbances:
+```{r echo=FALSE, message=FALSE}
+fra_data_tmp <- tibble(read_csv("FRA_2020_data/Annual_2021_05_05.csv"))
+fra_data_tmp %>% drop_na() %>% select(name, year, contains('5'))
+```
+First we remove everything that we won't need and make column names (of columns that we will later need) more readable: 
 
-* The 'Value' column has been change to ForestSize to make it more understandable
-* The 'Area' column has been renamed as Continent to give more meaningful information 
+* The 'regions' column gets exchanged by a continent column which provides more intuitive information. 
+* The 'iso3' column doesn't provide any further information.
+* The name and continent column are changed to factor variables.
+We also replace missing values with 0, because there is now safe way to impute these values. However this implies that our results for this part of the project are probably an underestimation.
+```{r fra_data_processing}
+fra_data <- fra_data_tmp %>%
+  mutate(continent = countrycode(sourcevar = iso3, origin = "iso3c", destination = "continent"),
+         across(everything(), ~ replace_na(.x, 0)),
+         name = factor(name),
+         continent = factor(continent)) %>% 
+  select(-c(iso3, regions)) %>% 
+  rename(Insects = `5a_insect`, 
+         Diseases = `5a_diseases`, 
+         Weather = `5a_weather`, 
+         Others = `5a_other`,
+         Fire = `5b_fire_forest`) %>% 
+  #rename_with(str_to_title) %>% 
+  relocate(name, continent, year, Insects, Diseases, Weather, Others, Fire)
 
+fra_data
 
-```{r read-dataset, echo=FALSE}
+# Use maybe kable table
+# fra_data %>% 
+#  kable(caption = "Data on forest desturbances") %>% 
+#  scroll_box(width = "100%", height = "200px")
+```
+  1.3 Data on further topics (e.g. Forest Management / Ownership) for the period 1990-2020 (not every year included).
+```{r echo=FALSE, message=FALSE}
+fra <- tibble(read_csv("FRA_2020_data/FRA_Years_2021_05_05.csv"))
+fra %>% select(name, year, '7a_employment_tot', '4a_priv_own')
+```
+
+## [FAO. 2020. FAOSTAT Emissions-Land Use, Forest Land dataset.](http://www.fao.org/faostat/en/#data/GF)  
+The next dataset is also from the FAO and contains data on emissions and area change due to gain and losses of carbon stocks in living tree biomass for the period 1990-2020.
+```{r echo=FALSE, message=FALSE}
+emissions <- tibble(read_csv("Emissions_Land_Use_Forest_Land_E_All_Data_(Normalized)/Emissions_Land_Use_Forest_Land_E_All_Data_(Normalized).csv"))
+emissions %>% select(Area, Item, Element, Year, Value)
+```
+
+## [FAO. 2021. FAOSTAT Temperature Change Dataset](http://www.fao.org/faostat/en/#data/ET)  
+To work on wildfire predictions due to temperature rise we need data on mean surface temperature change as well. In this case for the period 1961-2020.
+```{r echo=FALSE, message=FALSE}
+temperature <- tibble(read_csv("Environment_Temperature_change_E_All_Data_(Normalized)/Environment_Temperature_change_E_All_Data_(Normalized).csv"))
+temperature %>% select(Area, Element, Year, Value)
+```
+
+##### The second data set we use is about mean surface temperature changes for the period 1961-2020:  
+[FAO. 2021. FAOSTAT Temperature Change Dataset](http://www.fao.org/faostat/en/#data/ET) 
+
+```{r temp_overview}
+glimpse(temperature_data_tmp %>% select(-Unit)) # Markdown cannot handle the Unit entries.
+```
+
+Again we remove everything that we won't need: 
+
+* All 'Code'-columns: Add no information.
+* All years that are not in 2000-2017: No forest data for these years.
+* The Unit column: it's always °C.
+* All missing values (Flags != "Fc") and afterwards the flag column.
+
+```{r temp_data_processing}
+temperature_data <- temperature_data_tmp %>% 
+  filter(Year %in% 2000:2017,
+         Flag == "Fc") %>% 
+  select(-c(contains("Code"), Flag, Unit))
+# Use maybe kable table
+temperature_data
+```
+
+## [OECD. 2021. Air quality and health: Exposure to PM2.5 fine particles](https://stats.oecd.org/viewhtml.aspx?datasetcode=EXP_PM2_5&lang=en)  
+Our fourth dataset was created by the OECD and holds data on mean population exposures to outdoor and ambient PM2.5 particles for the period 1990-2019 (not every year included).
+```{r echo=FALSE, message=FALSE}
+pm2_5 <- tibble(read_csv("EXP_PM2_5_10052021161712459.csv"))
+pm2_5 %>% select(Country, Variable, Year, Value)
+```
+
+## [CAIT data: Climate Watch. 2020. GHG Emissions](https://www.climatewatchdata.org/data-explorer/historical-emissions?historical-emissions-data-sources=cait&historical-emissions-gases=all-ghg&historical-emissions-regions=All%20Selected&historical-emissions-sectors=total-including-lucf&page=1)  
+The CAIT dataset contains data on greenhouse gas (GHG) emissions for the period from 1990-2018.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ghg <- tibble(read_csv("historical_emissions.csv"))
+ghg %>% mutate(`1990` = as.double(`1990`)) %>% select(Country, Sector, Gas, `1990`, `2018`)
+```
+
+## [FAO. 2021. AQUASTAT Database](http://www.fao.org/aquastat/statistics/query/results.html)  
+Our next data set is the AQUASTAT database from the FAO which shows data of annual averages on precipitation and renewable water resources between 1961-1990.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+tmp <- tibble(read_csv("aquastat.csv"))
+aquastat <- tmp %>% filter(Year == 2017) %>% select(Area, `Variable Name`, Value) %>% pivot_wider(names_from = `Variable Name`, values_from = Value) %>% select(Area, `Long-term average annual precipitation in volume`, `Total renewable water resources`)
+aquastat
+```
+
+## [Forest land of continents](http://www.fao.org/faostat/en/#data/GF)
+The last data set is about the forest cover of the continents.
+
+```{r read-dataset}
 # forest cover of continents dataset
-forest_continents <- read_csv("FAOSTAT_data_continents.csv")
+forest_continents <- read_csv("FAOSTAT_data_continents.csv", col_types = cols())
 
 # change column names
 colnames(forest_continents)[colnames(forest_continents) == "Value"] <- "ForestSize"
@@ -82,16 +182,11 @@ forest_continents
 
 ```
 
-
-```{r structure-and-dimension-of-data, echo=FALSE}
-str(forest_continents)
-dim(forest_continents)
-```
 Here we have pre-processed out data set
 
 * We have imputed the missing values by dropping them 
 
-```{r data-wrangling, echo=FALSE}
+```{r data-wrangling}
 newData <- forest_continents %>%
   drop_na() %>% 
   select(c("Continent","Year","ForestSize")) %>% 
@@ -103,368 +198,113 @@ newData
 
 ```
 
+## Missing , Shweta's part
 
-
-## Global Forest Trend
-
-+ Plot showing the forest cover of the continents
-+ the plot shows that the forest cover of the continents has decreased in the last 30 years
-
-
-```{r forest-continents-scatter-plot, echo=FALSE}
-newData  %>% 
-  ggplot(aes(x = Year, y = ForestSize)) +
-  geom_point(aes(color = Continent), size = 3, shape = 16, alpha = 0.7) +
-  scale_y_continuous(limits = c(100000, 1800000))+
-  labs(
-    x = "Years",
-    y = "Forest land(1000ha)",
-    title = "Global Forest Land through the decades"
-  ) +
-  theme_minimal()+
-  scale_y_continuous(labels = scales::comma)
-
-```
-### Findings:
-+ Forest land has decreased globally
-
-
-```{r Load-Country-data, echo=FALSE}
-forest_countries <- read_csv("FAOSTAT_data_6-9-2021.csv")
+```{r Load-Country-data}
+forest_countries <- read_csv("FAOSTAT_data_6-9-2021.csv", col_types = cols())
 
 colnames(forest_countries)[colnames(forest_countries) == "Value"] <- "ForestArea"
 colnames(forest_countries)[colnames(forest_countries) == "Area"] <- "Country"
 forest_countries <- forest_countries %>% subset(Country != "USSR")
 forest_countries <- forest_countries %>% subset(Country != "China, mainland")
 
-glimpse(forest_countries)
+forest_countries
+```
+
+# Global Forest Development
+
+This part of our project answers the following questions:
+
+* What was the global forest development over the last 30 years? 
+  + What are the trends? (globally)
+* Is there a correlation between air pollution and the amount of forest in a country / globally?
+  + Which countries have the most air pollution?
+
+## Global forest trends
+
+The plot is showing an overview of the Forest Area for each continent in the period 1990-2020. One can see a decrease in the Americas and Africa while Asia sees a slight increase in forest area. The forest area in Europe seems to be quite stable.
+
+```{r forest-continents-scatter-plot}
+newData  %>% 
+  ggplot(aes(x = Year, y = ForestSize)) +
+  geom_point(aes(color = Continent), size = 3, shape = 16, alpha = 0.7) +
+  scale_y_continuous(limits = c(100000, 1800000), labels = scales::comma) +
+  labs(
+    x = "Years",
+    y = "Forest area [1000 ha]",
+    title = "Global forest area over the last 30 years"
+  ) +
+  theme_minimal()
+```
+
+**Findings**:
+
+* Forest land has decreased globally
+
+```{r}
+tmp <- fra %>% 
+  select(iso3, name, year, `1a_forestArea`) %>% 
+  filter(year == 1990 | year == 2020) %>% 
+  pivot_wider(names_from = year, values_from = `1a_forestArea`) %>% 
+  mutate(diff = `2020` - `1990`)
+
+l <- list(color = toRGB("grey"), width = 0.5)
+
+g <- list(
+  showframe = FALSE,
+  showcoastlines = FALSE
+)
+
+limit <- max(abs(tmp$diff)) * c(-1, 1)
+
+plot_ly(tmp, type='choropleth', locations=tmp$iso3, z=tmp$diff, text=tmp$name, colors = "PRGn", marker = list(line = l)) %>%
+colorbar(title = "Forest Area\n[1000 ha]", limits = limit) %>%
+  layout(
+    title = 'Change in forest area from 1990 - 2020',
+    geo = g
+  )
 ```
 
 
-## Top 20 countries with largest forest area
+## Countries with the largest forest area
 
+```{r top-10-countries-with-largest-forest-area-plot, message=FALSE}
 
-```{r top-20-countries-with-largest-forest-area-plot, echo=FALSE}
-
-forest_countries %>% 
+top10 <- forest_countries %>% 
+  filter(Year == 2020) %>% 
   drop_na() %>% 
-  group_by(Country) %>% 
-  summarize(avg_forest_size = mean(ForestArea)) %>% 
-  as.data.frame() %>% 
-  ungroup() %>% 
-  arrange(desc(avg_forest_size)) %>%
-  top_n(20) %>% 
-  ggplot(aes(x = avg_forest_size, y = reorder(Country, avg_forest_size))) +
+  arrange(desc(ForestArea)) %>%
+  top_n(10) %>% 
+  select(Country, ForestArea)
+
+rest <- forest_countries %>% 
+  filter(Year == 2020) %>% 
+  drop_na() %>% 
+  arrange(desc(ForestArea)) %>%
+  slice(11:n()) %>% 
+  summarise(Country = "Other Countries",
+    ForestArea = sum(ForestArea))
+
+top_data <- bind_rows(top10, rest) %>% mutate(Country = factor(Country))
+
+top_data %>% 
+  ggplot(aes(x = ForestArea, y = fct_rev(fct_inorder(Country)))) +
   geom_col(fill = "#1c9099") +
   theme(legend.position = "none") +
   labs(
-    x = "Average Forest Size (1000ha)",
+    x = "Forest area [1000 ha]",
     y = "Country",
-    title = "Top 10 countries with largest forest area",
-    subtitle = "Time period: 1990 - 2020"
+    title = "Top 10 countries with the largest forest area",
+    subtitle = "For the year 2020"
   )+
   scale_x_continuous(labels = scales::comma) +
   theme_minimal()+
   theme(axis.title.x = element_text(color = "Black"), text = element_text(family="Arial")) 
- 
-```
-### Findings
-+ Russian federation has the largest forest cover in the last 30 years
-
-
-
-```{r preprocessing-country-data, echo=FALSE}
-forest_countries %>%
-  drop_na() %>%
-  group_by(Country, Year) %>% 
-  summarize(forest_perYear = sum(ForestArea)/Year)#### do this with air pollution per year
-
 ```
 
-
-## Countries With least forest area
-
-
-```{r countries-with-least-forest-area-plot, echo=FALSE}
-
-forest_countries %>% 
-  drop_na() %>% 
-  group_by(Country) %>% 
-  summarize(avg_forest_size = mean(ForestArea)) %>% 
-  as.data.frame() %>% 
-  arrange(desc(avg_forest_size)) %>%
-  top_n(-20) %>% 
-  ggplot(aes(x = avg_forest_size, y = reorder(Country, -avg_forest_size), fill = Country)) +
-  geom_col(fill = "#756bb1") +
-  theme(legend.position = "none") +
-  labs(
-    x = "Average Forest Size (1000ha)",
-    y = "Country",
-    title = "Countries with least forest area",
-    subtitle = "Time period: 1990 - 2020"
-  )+
-  theme_minimal()+
-  theme(axis.title.x = element_text(color = "Black"), text = element_text(family="Arial"))
-  
-```
-### Findings
-+ Curacao has show the least forest cover in the last 30 years
-
-
-
-The air pollution data has air quality value in microgram cubic metre from the year 1990 to 2019. However, a few years \n data is not available.
-Air quality shows changes in the amount of pollution in the air. 
-
-```{r air-pollution-data, echo=FALSE}
-
-AirPollution <- read_csv("EXP_PM2_Air_Quality.csv")
-colnames(AirPollution)[colnames(AirPollution) == "Value"] <- "AirPollution"
-glimpse(AirPollution)
-
-AirPollution <- AirPollution %>% 
-  select(c("Country", "Year","AirPollution")) %>% 
-  group_by(Country,Year) %>% 
-  glimpse()
-
-```
-
-```{r merged-data-set, echo=FALSE}
-mergedData <- merge(forest_countries, AirPollution, by=c("Country","Year")) %>%
-  select(c('Country','Year','ForestArea','AirPollution')) %>% 
-  drop_na() %>% 
-  group_by(Year) %>% 
-  summarize(TotalForestArea = sum(ForestArea), TotalAirPollution = sum(AirPollution)) %>% 
-  ungroup() %>% 
-  unique()
-mergedData
-
-```
-## Is there a correlation between Forest area and air pollution?
-
-```{r correlation-plots, echo=FALSE}
-mergedData %>% 
-  ggplot(aes(x = TotalForestArea, y = TotalAirPollution)) +
-  geom_point(size = 4, alpha=0.7, color = "#056b5f") +
-  geom_line(size=1, alpha=0.5, color="#056b5f")+
-  labs(x="Total Forest Area (1000ha)", y = "Total Air Pollution", title="Correlation between Forest Area and Air Pollution (globally)") + 
-  geom_smooth(method = 'lm')+
-  scale_x_continuous(labels = scales::comma)+
-  scale_y_continuous(labels = scales::comma)
-```
-Findings:
-No linear relationship between Forest Area and Air Pollution
-
-
-
-## Correlation Value
-```{r correlation2, echo=FALSE}
-corr <- cor(x = mergedData$TotalForestArea, y = mergedData$TotalAirPollution, use = "everything", method = "kendall")
-paste("Kendall = ", corr)
-
-```
-Findings:
-A negative correlation coefficient shows the variables are moving in the opposite direction.
-
-## Regression Analysis
-
-```{r regression, echo=FALSE}
-# merge  data sets and remove missing values
-
-data <-  merge(forest_countries,AirPollution,by=c("Country","Year")) %>%
-  drop_na() %>% 
-  select(c("Country","Year","ForestArea","AirPollution"))
- 
-```
-
-## fit model and estimate parameters
-
-```{r build-model, echo=FALSE}
-linear_reg() %>%
-  set_engine("lm") %>%
-  fit(formula = ForestArea ~ AirPollution, data = data) -> model
-model
-
-```
-Findings:
-
-
-## extrapolation
-```{r tidy, echo=FALSE}
-fit <- linear_reg() %>%
-  set_engine("lm") %>%
-  fit(formula = ForestArea ~ AirPollution, data = data) 
-
-fit %>% tidy()
-```
-Findings:
-Very low p-value signifies that Forest Area and Air Pollution are independent of each other.
-
-## Residual Plot
-
-```{r residual-plot-Air-Pollution, echo=FALSE}
-augment(fit$fit) %>%
-  ggplot(aes(x = ForestArea, y = AirPollution)) +
-  geom_point(aes(color=.resid)) +
-  geom_smooth(method = "lm") +
-  scale_color_gradient2(mid = "gray80") +
-  labs(title = "Residual",
-       x = "Forest Area (1000ha)", 
-       y = "AirPollution(Micrograms per cubic metre)", color = "Residuals") +
-  scale_y_continuous(labels = scales::comma)
-```
-Finding:
-
-* As our data set is non-linearly associated, the residual plot here assesses the appropriateness of our linear regression
-
-* In the plot the residual of data points are away from zero show the model is not a good fit
-
-
-
-### For more reliable results of the relationship between Forest Area and Air Pollution,\n
-we implement Predictive Power Score
-
-```{r air-pollution, echo=FALSE}
-
-library(ppsr)
-pps1 <- score_df(data %>% 
-                   group_by(Year) %>% 
-                   summarise(AirPollution = sum(AirPollution, na.rm = TRUE), 
-                             ForestArea = sum(ForestArea)) %>% ungroup() %>% 
-                   select(AirPollution, ForestArea))
-ggplot(pps1, aes(x, y)) +
-  geom_tile(aes(fill = pps)) +
-  geom_text(aes(label = round(pps, 2), color = pps > 0.8), size = 12 / .pt) +
-  scale_fill_distiller(palette = "Green", direction = 1) +
-  scale_color_manual(values = c("black", "white")) +
-  guides(color = FALSE) +
-  labs(
-    x = NULL, y = NULL, fill = "Predictive\nPower\nScore", title = "PPS matrix for relation between global forest area\n and air quality ",
-    subtitle = "A value represents the predictive power that the\nx variable has on the y variable."
-  ) +
-  coord_equal() +
-  theme(axis.text.x = element_text(angle = 325, hjust = 0, vjust = 0)) +
-  theme(plot.subtitle = element_text(size = rel(1))) + 
-  theme_minimal()
-
-```
-Findings:
-
-Predictive Power Score of 0 shows no relationship between Forest Area and Air Pollution
-
-## Top 10 countries with most air pollution
-```{r Air-Pollution-plot, echo=FALSE}
-AirPollution %>% 
-  drop_na() %>% 
-  group_by(Country) %>% 
-  summarize(avgAirPollution = mean(AirPollution)) %>% 
-  as.data.frame() %>% 
-  ungroup() %>% 
-  arrange(desc(avgAirPollution)) %>%
-  top_n(10) %>% 
-  ggplot(aes(x = avgAirPollution, y = reorder(Country, avgAirPollution))) +
-  geom_col(fill = "#DE8971", width = 0.5) +
-  theme(legend.position = "none") +
-  labs(
-    x = "Average Air Pollution (Micrograms per cubic metre)",
-    y = "Country",
-    title = "Top 10 countries with highest air pollution ",
-    subtitle = "Time period: 1990 - 2020"
-  )+
-  scale_x_continuous(labels = scales::comma) +
-  theme_minimal()+
-  theme(axis.title.x = element_text(color = "Black" ), text = element_text(family="Arial"))
-```
-Findings:
-
-India has the highest air pollution in the last 30 years 
-
-
-## Least air pollution
-
-```{r Air-Pollution-plot-least, echo=FALSE}
-AirPollution %>% 
-  drop_na() %>% 
-  group_by(Country) %>% 
-  summarize(avgAirPollution = mean(AirPollution)) %>% 
-  as.data.frame() %>% 
-  ungroup() %>% 
-  arrange(desc(avgAirPollution)) %>%
-  top_n(-10) %>% 
-  ggplot(aes(x = avgAirPollution, y = reorder(Country, -avgAirPollution))) +
-  geom_col(fill = "#70AF85", width = 0.6) +
-  theme(legend.position = "none") +
-  labs(
-    x = "Average Air Pollution (Micrograms per cubic metre)",
-    y = "Country",
-    title = "Top 10 countries with least air pollution",
-    subtitle = "Time period: 1990 - 2020"
-  )+
-  scale_x_continuous(labels = scales::comma) +
-  theme_minimal()+
-  theme(axis.title.x = element_text(color = "Black" ), text = element_text(family="Arial"))
-  
-
-```
-Finding:
-Nauru has the least air pollution in the last 30 years.
-
-
-### Air pollution trend in India
-```{r India-plot, echo=FALSE}
-
-AirPollution_India <- AirPollution %>% 
-  group_by(Year) %>% 
-  filter(Country == "India") %>% 
-  summarize(AirPollution = mean(AirPollution)) %>% 
-  ungroup() 
-  
-
-
-AirPollution_India %>% 
-  ggplot(aes(x = Year, y = AirPollution))+
-  geom_point(color =  "#79198a", size = 5, alpha = 0.6)+
-  geom_line(size = 1.3, alpha = 0.6)+
-  labs(title = "Air Pollution in India through decades",
-       subtitle = "Time period: 1990-2019",
-       x = "Year",
-       y = "Average Air Pollution (Micrograms per cubic metre)")+
-  theme_fivethirtyeight()+
-  theme(axis.title = element_text(),text = element_text(family = "Arial"))+
-  theme(plot.subtitle = element_text(size = rel(0.8)))
-```
-Findings:
-* Air Pollution drastically increased after the year 2005.
-* It was highest in 2012.
-* It decreased in 2005 by ~10 Micrograms per cubic metre.
-* Sudden decrease around 2017.
-* Increased slightly in 2019 again
-
-
-### Air pollution trend in Nauru
-```{r nauru-plot, echo=FALSE}
-
-AirPollution_Nauru <- AirPollution %>% 
-  group_by(Year) %>% 
-  filter(Country == "Nauru") %>% 
-  summarize(AirPollution = mean(AirPollution)) %>% 
-  ungroup() 
-
-AirPollution_Nauru %>% 
-  ggplot(aes(x = Year, y = AirPollution))+
-  geom_point(color =  "#53ab0f", size = 5, alpha = 0.6)+
-  geom_line(size = 1.3, alpha = 0.6)+
-  labs(title = "Air Pollution in Nauru through decades",
-       subtitle = "Time period: 1990-2019",
-       x = "Year",
-       y = "Average Air Pollution (Micrograms per cubic metre)")+
-  theme_fivethirtyeight()+
-  theme(axis.title = element_text(),text = element_text(family = "Arial"))+
-  theme(plot.subtitle = element_text(size = rel(0.8)))
-```
-Findings:
-* Air Pollution varies in range of 5 Micrograms per cubic metre and ~7 Micrograms per cubic metre.
-* Least in 2014
-
+**Findings**
+* Russian federation has the largest forest cover in 2020
+* The top 10 countries have in sum more forest area than the rest of the world together
 
 # Deforestation
 
@@ -505,51 +345,45 @@ def_30$name[def_30$name=="United States of America"]<-"USA"
 def_30$name[def_30$name=="Venezuela (Bolivarian Republic of)"]<-"Venezuela"
 def_30$name[def_30$name=="Viet Nam"]<-"Vietnam"
 ```
-This part deals with the questions related to forest deforestation and environment:
 
-* Deforestation
-  + Which countries are the main drivers of deforestation?
-  + What are the trends? (by continents)
-  + Prediction of how many years it would take until all forests are lost based on the current rate of change.
-*Relation to other environmental issues
-  + Prediction of how much forest area has to be further increased to tackle the greenhouse gas emissions (what percentage of greenhouse gas decrease will occur if forest area increases).  
+In our analysis we are now attempting to answer important questions regarding deforestation, which is actually a part of forest destruction. However we want to highlight this issue in an own chapter as it is directly made by humans. 
+Therefore we will have a look on the main drivers (by countries) of deforestation, showing trends over the continents and making a prediction of how many years it would take until all forests are lost by putting the deforestation and reforestation values over the last 30 years into relation.
   
-  
-## Drivers of deforstation and forests in the future
+## Main drivers of deforestation and forest prediction
 
-Here the visualization of forest is shown country wise by hovering over it.
+By hovering over the following map you can find the data for every country regarding the percentage of forest lost through deforestation in the last 30 years in relation to 1990, the value for deforestation in the last 30 years, the current forest area [1000 ha] and the number of years in which the forest area will be completely lost, given the deforestation for each country in the last 30 years.
 
-* Information showed for each country
-  + Percentage of forest lost in last three decades 
-  + Deforestation is last 30 years
-  + Current forest area in (i unit =1000 hac) 
-  + Number of years in which complete forest area will be lost depending on the deforestation of specific country in last 3 decades.
-  
-Countries are being showed in different colors depending on the percentage of of forest lost in last three decades. countries with most percentage of forest lost are the main drivers of deforestation
+The color scale is showing the percentage of forest lost, which is making the main drivers of deforestation visible. 
 
-note: for some countries deforestation data was shown as zero  or not available , for them deforestation was found by finding the difference in forest area between 1990 and 2020
 ```{r echo=FALSE,  message=FALSE,warning=FALSE}
 
 def_30$code <- countrycode(sourcevar = def_30$name,
                                 origin = "country.name",
                                 destination = "iso3c")
 
-plot_ly(def_30, type='choropleth', locations=~def_30$code, z=~def_30$percent_change_1, text=~paste(name,paste("Deforestation in last 30 years:",t_deforestation ), paste("current forest area:",`2020` ),paste("Year in which Forest area will be lost:", year) ,sep = "<br />"),colorscale="Rainbow")  %>% colorbar(title = "Percenate of forest lost <br />from deforestation(1 Unit=1000 ha)")%>% layout(
-    title = 'Deforestation Analysis in last 3 decades'
+l <- list(color = toRGB("grey"), width = 0.5)
+
+g <- list(
+  showframe = FALSE,
+  showcoastlines = FALSE,
+  showocean=TRUE, oceancolor="LightBlue"
+)
+
+plot_ly(def_30, type='choropleth', locations=~def_30$code, z=~def_30$percent_change_1, text=~paste(name,paste("Deforestation in the last 30 years:",t_deforestation ), paste("Current forest area:",`2020` ), paste("Years until forest area will be lost:", year) ,sep = "<br />"), marker = list(line = l), colors = "Purples")  %>% 
+  colorbar(title = "Forest loss through deforestation [%]", ticksuffix = '%') %>% 
+  layout(
+    title = 'Deforestation analysis of the last 30 years',
+    geo = g
   ) 
-
-
-
 
 ```
 
 
-## Deforestation treands by continents 
+Note: for some countries the deforestation data is 0 or not available. If possible, for those countries the deforestation value was calculated by the difference of the forest area between 1990 and 2020. Otherwise they are colored white.
 
-Below Bargraph plot shows trends in the deforestation over the last three decades over 5 continents 
+## Deforestation trends by continents 
 
-note : here Americas refer to North and South America. while  oceania refer to Australasia, Melanesia, Micronesia and Polynesia.
-
+The bar chart below shows trends in the deforestation over the last thirty years over 5 continents. Unfortunately, our data set only provides intervals in 5 respectively 10 year steps, which is why it is not possible to show a more precise trend line.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 world <- map_data("world") %>% group_by(region) %>% filter(row_number()==1)
@@ -567,61 +401,17 @@ trends_def<-trends %>% group_by(year,continent) %>% summarize(t_deforestation =s
 #%>% pivot_longer(cols = contains("t_"),names_to = "continent",values_to = )
 
 plot_ly(trends_def,x=~year,y=~t_deforestation,color = trends_def$continent) %>% layout(
-    title = 'Deforestation Trends over last three decades',xaxis = list(title = 'Decades'),yaxis = list(title = 'Total Deforesstation(1 Unit=1000 ha)')
+    title = 'Deforestation Trends over last three decades',xaxis = list(title = 'Decades'),yaxis = list(title = 'Total Deforesstation [1000 ha]')
   )
-
-
-                      
-
 ```
 
-## Required forests for Current Co2 emmission.
-
-Below world map plot shows the amount of forest area required to tackle the current Co2 emissions country wise.
-As we had only Co2 emission data for every country from 1990-2018 , we have used Arima model time series prediction to predict future Co2 emission.
-for this purpose a function was created to predict future Co2 emission for every country.
-
-By taking into consideration, The amount of metric tons Co2 absorbed by forest (that is one acre of new forest can sequester about 2.5 tons of carbon annually).the predicted Co2 value is used to find the amount of additional forest required. 
-
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-
-ghg<- tibble(read_csv("historical_emissions.csv")) 
-
-gh1<-ghg%>% filter(Gas=="CO2" & Country!="World") %>% filter(Sector=="Total including LUCF")
-colnames(gh1)[1]<-"name"
-gh1$code <- countrycode(sourcevar = gh1$name,
-                                origin = "country.name",
-                                destination = "iso3c")
-
-#function for time series prediction of the future values co2
-predic_2021<-function(country){
-x<-gh1 %>% filter(name==country) %>% select(-`Data source`,-Sector,-Gas,-Unit,-code) %>% mutate(`1990`=as.double(`1990`)) %>% pivot_longer(cols = -name,names_to = "year",values_to = "emission") %>% arrange(year)
-fit<-arima(ts(x$emission,start = 1990,frequency = 1),order = c(1,2,0))
-predict(fit,n.ahead=5)$pred[3]
-}
-
-ghg_pre<-gh1 %>% rowwise() %>% mutate(new_area=as.numeric(predic_2021(name))/2.5)
-
-
-
-
-plot_ly(ghg_pre, type='choropleth', locations=ghg_pre$code, z=ghg_pre$new_area, text=ghg_pre$name, colorscale="Green") %>% colorbar(title = "Forest Area <br />Required(1 Unit=1000 ha)") %>% layout(
-    title = 'New forest area required <br />to componsate present emission'
-  )
-
-```
+Note: the Americas refer to North and South America.
 
 # Reforestation
 
-```{r load data, include=FALSE}
-intervals <- tibble(read_csv("FRA_2020_data/Intervals_2021_05_05.csv"))
-fra <- read_csv("FRA_2020_data/FRA_Years_2021_05_05.csv")
-```
-
 In this part we want to dig in deeper into the topic of the reforestation by analyzing which countries are the main drivers, whether there is a correlation between reforestation and deforestation and showing the trends over continents.
 
-## Which countries are the main drivers of reforestation?
+## Main drivers of reforestation
 
 ```{r, include=FALSE}
 reforestation <- intervals %>% 
@@ -642,19 +432,26 @@ reforestation <- intervals %>%
 ```{r, include=FALSE}
 refplot <- reforestation %>%
   head(20)
+
+rest_ref <- reforestation %>% 
+  slice(21:n()) %>% 
+  summarise(name = "Other Countries",
+    totalref = sum(totalref))
+
+ref_data <- bind_rows(refplot, rest_ref) %>% mutate(name = factor(name))
 ```
 
 
 ```{r, echo=FALSE}
- ggplot(refplot, aes(x = reorder(name, totalref), y = totalref)) +
+ ggplot(ref_data, aes(x = totalref, y = fct_rev(fct_inorder(name)))) +
   geom_col(fill = "Forestgreen") +
   labs(
-    y = "Increase between 1990-2020 (1000 ha)",
+    y = "Increase between 1990-2020 [1000 ha]",
     x = NULL,
     title = "Top 20 countries of total reforestation between 1990 and 2020"
-  ) +
-  coord_flip()
+  ) 
 ```
+
 As these results show mainly countries with a huge surface, we want to put the increase of reforestation from 1990-2020 in relation to the forest area in 1990. 
 
 ```{r, include = FALSE}
@@ -686,63 +483,14 @@ increase %>%
   coord_flip()
 ```
 
-
-```{r, include = FALSE, warning = FALSE}
-increase$name[increase$name=="Bolivia (Plurinational State of)"]<-"Bolivia"
-increase$name[increase$name=="Brunei Darussalam"]<-"Brunei"
-increase$name[increase$name=="Cabo Verde"]<-"Cape Verde"
-increase$name[increase$name=="Côte d'Ivoire"]<-"Ivory Coast"
-increase$name[increase$name=="French Guyana"]<-"French Guiana"
-increase$name[increase$name=="Iran (Islamic Republic of)"]<-"Iran"
-increase$name[increase$name=="Lao People's Democratic Republic"]<-"Laos"
-increase$name[increase$name=="Micronesia (Federated States of)"]<-"Micronesia"
-increase$name[increase$name=="Republic of Korea"]<-"South Korea"
-increase$name[increase$name=="Republic of Moldova"]<-"Moldova"
-increase$name[increase$name=="Réunion"]<-"Reunion"
-increase$name[increase$name=="Russian Federation"]<-"Russia"
-increase$name[increase$name=="Saint Vincent and the Grenadines"]<-"Saint Vincent"
-increase$name[increase$name=="Syrian Arab Republic"]<-"Syria"
-increase$name[increase$name=="Trinidad and Tobago"]<-"Trinidad"
-increase$name[increase$name=="United Kingdom of Great Britain and Northern Ireland"]<-"UK"
-increase$name[increase$name=="United Republic of Tanzania"]<-"Tanzania"
-increase$name[increase$name=="United States of America"]<-"USA"
-increase$name[increase$name=="Venezuela (Bolivarian Republic of)"]<-"Venezuela"
-increase$name[increase$name=="Viet Nam"]<-"Vietnam"
-increase$name[increase$name=="Czechia"]<-"Czech Republic"
-increase$name[increase$name=="North Macedonia"]<-"Macedonia"
-increase$name[increase$name=="Democratic People's Republic of Korea"]<-"North Korea"
-increase$name[increase$name=="Congo"]<-"Republic of Congo"
-increase$name[increase$name=="Eswatini"]<-"Swaziland"
-```
-
-
-```{r, include = FALSE, warning = FALSE}
-world <- map_data("world") %>%
-     filter(region != "Antarctica")  
-
-
-ggplot() +
-  geom_map(
-    data = world, map = world,
-    aes(long, lat, map_id = region)
-  ) +
-  geom_map(
-    data = increase, map = world,
-    aes(fill = reforestation_increase, map_id = name)
-  ) +
-  scale_fill_continuous(
-    low="#ffffff", high="#006400", guide="colorbar") +
-    scale_y_continuous(breaks=c()) +
-    scale_x_continuous(breaks=c()) +
-labs(x = NULL, y = NULL, title = "Increase in reforestation between 1990 and 2020 in %", fill = "")
-```
+This leads us to quite surprising results, e.g. that Algeria is the country with the highest reforestation increase given the total forest area in 1990. Nevertheless this doesn't come out of nowhere, along with other North African countries, Algeria is pursuing several reforestation projects such as the great green wall or "barrage vert" [2]. This results in the fact, that Algeria is one of the countries which has a higher forest cover in 2020 than in 1990.
 
 ```{r, include = FALSE, warning = FALSE}
 increase$code <- countrycode(increase$name, origin = "country.name", destination = "iso3c")
-  
 ```
 
-(source of idea https://plotly.com/r/choropleth-maps/#introduction-main-parameters-for-choropleth-outline-maps)
+By hovering over the following map, a tooltip of the reforestation increase for each country is shown. The greener the country, the higher is the increase.
+
 ```{r, echo=FALSE, warning = FALSE}
 
 l <- list(color = toRGB("grey"), width = 0.5)
@@ -763,7 +511,9 @@ colorbar(ticksuffix = '%') %>%
 ```
 
 
-## Is there a correlation between reforestation and deforestation?
+## Relation between reforestation and deforestation
+
+After we have now an overview on reforestation and deforestation we want to answer the question whether governments try to "make up" for the deforestation in the last 30 years.
 
 ```{r, include = FALSE}
 deforestation <- intervals %>% 
@@ -785,7 +535,7 @@ corref <- reforestation %>%
  select(name,totalref, totaldef)
 ```
 
-First of all we want to show the relation of total reforestation and deforestation in the last 30 years, to get a first impression
+First of all we want to show the relation of total reforestation and deforestation in the last 30 years, to get a first impression.
 
 ```{r, echo=FALSE, warning = FALSE, message = FALSE}
 ggplot(data = corref, mapping = aes(x = totalref, y = totaldef)) +
@@ -795,22 +545,23 @@ ggplot(data = corref, mapping = aes(x = totalref, y = totaldef)) +
     data = filter(corref), 
     aes(label = name), 
     color = "black", size = 7/.pt)+
-  labs(x = "total reforestation (1000ha)", y = "total deforestation (1000 ha)")
+  labs(x = "total reforestation [1000 ha]", y = "total deforestation [1000 ha]")
 ```
 
-As there are many outliers with either very high deforestation/reforestation figures, we zoom in by changing the scale.
+There are many outliers with either very high deforestation or reforestation figures. However, such outliers are not surprising when taking a look into recent news.For example Brazil, a country with one of the biggest rainforest areas, has been making negative headlines for years with it's environment politics [1].
+
+We now zoom in to have a closer look on the data without the outliers by downsizing the scale.
 
 ```{r, echo=FALSE, warning = FALSE, message = FALSE}
 ggplot(data = corref, mapping = aes(x = totalref, y = totaldef)) +
-  geom_point() +
-  scale_x_continuous(limits = c(100, 5000)) +
-  scale_y_continuous(limits = c(100, 10000)) +
-  geom_smooth(se = FALSE) +
+  geom_point(alpha=0.5) +
+  scale_x_continuous(limits = c(0, 5000)) +
+  scale_y_continuous(limits = c(0, 10000)) +
   ggrepel::geom_text_repel(
     data = filter(corref), 
     aes(label = name), 
     color = "black", size = 7/.pt)+
-  labs(x = "total reforestation (1000ha)", y = "total deforestation (1000 ha)")
+  labs(x = "total reforestation [1000 ha]", y = "total deforestation [1000 ha]")
 ```
 
 The figure shows already a high and not linear distrubtion of our data.
@@ -831,12 +582,6 @@ The values are below 0.05 for both, reforestation and deforestation, the data si
 
 As the data is therefore not linear, we should choose the Spearman method to calculate the correlation.
 
-```{r, echo=FALSE}
-corrr::correlate(corref, quiet = TRUE, method = "pearson") 
-pear <- cor.test(corref$totalref, corref$totaldef, method = 'pearson')
-pear
-```
-
 ```{r, echo=FALSE, warning = FALSE}
 corrr::correlate(corref, quiet = TRUE, method = "spearman") 
 Spear <- cor.test(corref$totalref, corref$totaldef, method = 'spearman')
@@ -850,23 +595,12 @@ With  a value of 0.451 it shows a moderate correlation, which means, that defore
 
 pps <- score_df(corref %>% select(totalref, totaldef))
 
-ggplot(pps, aes(x, y)) +
-  geom_tile(aes(fill = pps)) +
-  geom_text(aes(label = round(pps, 2), color = pps > 0.8), size = 12 / .pt) +
-  scale_fill_distiller(palette = "Greens", direction = 1) +
-  scale_color_manual(values = c("Green", "white")) +
-  guides(color = FALSE) +
-  labs(
-    x = NULL, y = NULL, fill = "Predictive\nPower\nScore", title = "PPS matrix for relation between deforestation & reforestation",
-    subtitle = "A value represents the predictive power that the\nx variable has on the y variable."
-  ) +
-  coord_equal() +
-  theme(axis.text.x = element_text(angle = 325, hjust = 0, vjust = 0)) +
-  theme(plot.subtitle = element_text(size = rel(1))) + 
-  theme_minimal()
+pps
 ```
 
-## What are the trends by continents?
+## Reforestation trends by continent
+
+Finally we are going to take a look on the trend line of the continents and their given total reforestation in the given time intervals of 10 years between 1990 and 2020.
 
 ```{r, include = FALSE}
 intervals_1<-intervals %>% 
@@ -891,15 +625,28 @@ trends$continent <- countrycode(sourcevar = trends$name,
 trends$year[trends$year=="2010-2015"]<-"2010-2020"
 trends$year[trends$year=="2015-2020"]<-"2010-2020"
 
+trends$year[trends$year=="1990-2000"]<-0
+trends$year[trends$year=="2000-2010"]<-1
+trends$year[trends$year=="2010-2020"]<-2
+
 trends_ref<-trends %>% 
-  group_by(year,continent) %>% summarize(t_reforestation =sum(as.numeric(`1e_reforestation`),na.rm = TRUE))
+  group_by(year,continent) %>% summarize(t_reforestation =sum(as.numeric(`1e_reforestation`),na.rm = TRUE)) %>% ungroup()
 
-
-plot_ly(trends_ref,x=~year,y=~t_reforestation,color = trends_ref$continent) %>%
-  layout(title = 'Reforestation Trends on continents between 1990-2020',
-         xaxis = list(title = 'year'),
-         yaxis = list(title = 'reforestation (1000 ha)'))
+ggplot(trends_ref, aes(x = as.integer(year), y = t_reforestation, color = continent)) +
+  geom_point(aes(color = continent)) +
+  geom_line() +
+  scale_x_continuous(breaks = c(0,1,2), labels = c("1990-2000", "2000-2010", "2010-2020")) +
+  scale_y_continuous(labels = scales::comma) +
+  labs(
+    title = 'Reforestation Trends on continents between 1990-2020',
+    x = 'Year',
+    y = 'Reforestation [1000 ha]',
+    color = "Continent"
+  ) +
+  theme_minimal()
 ```
+
+One can notice, that reforestation is increasing on many continents, while in the deforestation part we could detect a decrease of deforestation in some continents. It would be very interesting to do another correlation analysis in a few years. The trend seems to be clearly going in the direction of a higher correlation that deforestation has an impact on reforestation, at least for some continents and countries.
 
 # Forest Destruction
 
@@ -914,78 +661,14 @@ The next part of our project is about forest destruction and tries to answer the
 + Which countries were affected the most?
 + How much forest was destroyed by each of these causes?
 * Is there a correlation between rising temperatures and wildfires?
-* Prediction of where and when wildfires are likely to occur.
+* Prediction of where and when wildfires are likely to occur
 
-### Overview and Preprocessing of the available data
-
-##### Our first data set is about forest disturbances (e.g. fire, weather) for the period 2000-2017:  
-[FAO. 2020. Global Forest Resources Assessment 2020](https://fra-data.fao.org/WO/fra2020/home/) - data set 2
-
-```{r fra_overview}
-glimpse(fra_data_tmp)
-```
-
-First we remove everything that we won't need and make column names (of columns that we will later need) more readable: 
-
-* The 'regions' column gets exchanged by a continent column which provides more intuitive information. 
-* The 'iso3' column doesn't provide any further information.
-* The name and continent column are changed to factor variables.
-
-We also replace missing values with 0, because there is now safe way to impute these values. However this implies that our results for this part of the project are probably an underestimation.
-
-```{r fra_data_processing}
-fra_data <- fra_data_tmp %>%
-  mutate(continent = countrycode(sourcevar = iso3, origin = "iso3c", destination = "continent"),
-         across(everything(), ~ replace_na(.x, 0)),
-         name = factor(name),
-         continent = factor(continent)) %>% 
-  select(-c(iso3, regions)) %>% 
-  rename(Insects = `5a_insect`, 
-         Diseases = `5a_diseases`, 
-         Weather = `5a_weather`, 
-         Others = `5a_other`,
-         Fire = `5b_fire_forest`) %>% 
-  #rename_with(str_to_title) %>% 
-  relocate(name, continent, year, Insects, Diseases, Weather, Others, Fire)
-
-fra_data
-# Use maybe kable table
-# fra_data %>% 
-#  kable(caption = "Data on forest desturbances") %>% 
-#  scroll_box(width = "100%", height = "200px")
-```
-
-
-##### The second data set we use is about mean surface temperature changes for the period 1961-2020:  
-[FAO. 2021. FAOSTAT Temperature Change Dataset](http://www.fao.org/faostat/en/#data/ET) 
-
-```{r temp_overview}
-glimpse(temperature_data_tmp %>% select(-Unit)) # Markdown cannot handle the Unit entries.
-```
-
-Again we remove everything that we won't need: 
-
-* All 'Code'-columns: Add no information.
-* All years that are not in 2000-2017: No forest data for these years.
-* The Unit column: it's always °C.
-* All missing values (Flags != "Fc") and afterwards the flag column.
-
-```{r temp_data_processing}
-temperature_data <- temperature_data_tmp %>% 
-  filter(Year %in% 2000:2017,
-         Flag == "Fc") %>% 
-  select(-c(contains("Code"), Flag, Unit))
-# Use maybe kable table
-temperature_data
-```
-
-After preprocessing we can start answering the questions.  
 For the first two questions we decided to look at a global scale and for the country Germany.  
 For the third question we decided to look at a global scale and for the continent Europe.
 
 Note: In our interactive shiny website you can pick the country / continent of your interest.
 
-## What were the main causes of forest destruction?
+## Main causes of forest destruction
 
 ```{r overview}
 plot_yearly_forest_destruction_by_region <- function(region = 'Global') {
@@ -1016,7 +699,7 @@ plot_yearly_forest_destruction_by_region()
 plot_yearly_forest_destruction_by_region('Germany')
 ```
 
-#### Findings:
+**Findings**:
 
 * On a global scale wildfires are clearly the dominant cause of forest destruction over the years.
 * However, this does not apply for every individual country:
@@ -1024,7 +707,7 @@ plot_yearly_forest_destruction_by_region('Germany')
   + Note: the peak in this plot was caused by the heat wave in 2003.
 * There is no obvious trend to find over this small time scale.
 
-## How much forest was destroyed by each of these causes?
+## Destroyed forest by cause
 
 ```{r area_by_cause, echo=FALSE}
 
@@ -1076,7 +759,7 @@ plot_total_forest_destruction_by_region()
 plot_total_forest_destruction_by_region('Germany')
 ```
 
-#### Findings:
+**Findings**:
 
 * On a global scale wildfires make up more than 50% of forest destruction, destroying more than 1 Billion ha of forest.
 * Insects make up almost 25% of forest destruction, destroying roughly 500 Million ha of forest.
@@ -1085,7 +768,7 @@ plot_total_forest_destruction_by_region('Germany')
   + Insects and diseases are the main drivers of German forest destruction, destroying approximately 2.5 Million ha of forest over this 18 years time period.
   + Wildfires are no significant problem in Germany. 
 
-## Which countries were affected the most?
+## Most affected countries
 
 ```{r most_affected}
 plot_highest_forest_destruction <- function(cont = 'Global', number = 15, cs = 'All') {
@@ -1126,7 +809,7 @@ plot_highest_forest_destruction()
 plot_highest_forest_destruction("Europe", 5, "All")
 ```
 
-#### Findings:
+**Findings:**
 
 * As one would expect from our previous findings, the most affected countries mostly struggle with wildfires.
 * The only exceptions to this are: USA, Canada, China, Sudan and Mexico.
@@ -1135,9 +818,9 @@ plot_highest_forest_destruction("Europe", 5, "All")
 * Europe:
   + Except for Russia, Europe's most affected countries have no problem with wildfires. 
 
-## Is there a correlation between rising temperatures and wildfires?
+## Relation between rising temperatures and wildfires
 
-#### Overview:
+**Overview:**
 
 ```{r fire_temp_corr_preprocessing, include=FALSE}
 global_yearly_tc <- temperature_data %>% 
@@ -1181,7 +864,7 @@ fra_tc_global %>%
        subtitle = "Time period: 2000 - 2017",
        x = "Year",
        y = "Wildfire Area [1000 ha]",
-       fill = "Temperature increase in C°") +
+       fill = "Temperature increase [C°]") +
   theme_minimal()
 ```
 
@@ -1285,7 +968,7 @@ fra_tc_local %>%
   scale_y_continuous(labels = scales::comma) +
   labs(title = "Area of wildfires per year and country",
        subtitle = "Time period: 2000 - 2017",
-       x = "Temperature increase in C°",
+       x = "Temperature increase [C°]",
        y = "Wildfire Area [1000 ha]",
        color = "Continent") +
   theme_minimal()
@@ -1304,7 +987,7 @@ p <- fra_tc_local %>%
   theme_minimal() +
   labs(title = "Area of wildfires per year and country",
        subtitle = "Year: {frame_time}",
-       x = "Temperature increase in C°",
+       x = "Temperature increase [C°]",
        y = "Wildfire Area [1000 ha]",
        color = "Continent") +
   transition_time(year) +
@@ -1366,7 +1049,7 @@ p2 <- plot_pps(pps2, "PPS matrix for\nglobal wildfire count")
 p1 + p2 + plot_layout(guides = 'collect')
 ```
 
-#### Findings:
+**Findings:**
 
 * There is clearly no correlation recognizable in our data between temperature increase and wildfires.
 
@@ -1490,20 +1173,20 @@ predict(dt_fit, new_data = wf_testing) %>%
   accuracy(estimate = .pred_class, truth = truth)
 ```
 
-#### Findings:
+**Findings:**
 
 * Our most accurate prediction depends only on the given country and is therefore not very useful in finding the underlying source of wildfires.
 * If we remove the country as a predictor, the main factor of deciding whether a wildfire occurs our not is the temperature, which is kind of a contradiction to our previous question.
 
-# Further questions
+# Relation to other environmental issues
 
-## Correlation between greenhouse gas emissions and total carbon stored in forests
+## Relation between greenhouse gas emissions and carbon stored in forests
 
 1. [Emission Dataset](https://www.climatewatchdata.org/data-explorer/historical-emissions?historical-emissions-data-sources=cait&historical-emissions-gases=all-ghg&historical-emissions-regions=All%20Selected&historical-emissions-sectors=total-including-lucf&page=1)
 2. [Carbon Stock Dataset](https://fra-data.fao.org/WO/fra2020/home/)
 3. [Forest Area Dataset](http://www.fao.org/faostat/en/#data/GF)
 
-#### Preprocessing 
+**Preprocessing**
 The first dataset containing data about the volume of carbon emitted per country per year (1990-2020) is processed here;\
 
 1. Some columns were processed to make them consistent with others and for easy identification\
@@ -1511,8 +1194,8 @@ The first dataset containing data about the volume of carbon emitted per country
 3. The year column was made longer (pivot_longer).
 
 
-```{r emissiondataSet, results='hide'}
-emissionData <- read_csv("historical_emissions.csv")
+```{r emissiondataSet, warning=FALSE}
+emissionData <- read_csv("historical_emissions.csv", col_types = cols())
 colnames(emissionData)[colnames(emissionData) == "Country"] <- "country" 
 colnames(emissionData)[colnames(emissionData) == "Data source"] <- "DataSource" 
 emissionData$`1990` <- as.numeric(emissionData$`1990`)
@@ -1525,12 +1208,12 @@ emissionData <- emissionData %>%
 
 ```
 
-#### Analysis and Visualizations of GHG Emissions
+## Analysis and Visualizations of GHG Emissions
 
 * Here we visualized the top 20 emitters of carbon globally, within defined period. The result is below.
 
 
-```{r top-countries-in-ghg-emissions, results = 'hide'}
+```{r top-countries-in-ghg-emissions, message=FALSE}
 emissionData%>%
   group_by(country)%>%
   summarise(avgEmission = mean(emissionValue))%>%
@@ -1548,7 +1231,6 @@ emissionData%>%
 * As seen below, we sought to know the proportionate constituents of the green house gases; hence the plot below; \
 
 ```{r piecharts-for-proportion-of-GHG-gases, results = 'hide'}
-library(IRdisplay)
 mycols <- c("##009999", "#EFC000FF", "#868686FF", "#CD534CFF")
 pieData <- emissionData%>%
   group_by(Gas)%>%
@@ -1572,25 +1254,24 @@ pie
 ```
 
 * The average emission per country from 1990 - 2020 was also visualized below 
-```{r worldmap, results = 'hide'}
-library(rworldmap)
+```{r worldmap, warning=FALSE}
 dataAggregate <- aggregate(emissionValue ~ country, emissionData, mean)
-colnames(dataAggregate)[colnames(dataAggregate) == "emissionValue"] <- "Average Emission Value [MtCO₂e] per Country from 1990 to 2020"
+colnames(dataAggregate)[colnames(dataAggregate) == "emissionValue"] <- "Average Emission Value [MtCO2e] per Country from 1990 to 2020"
 worldmaps <- joinCountryData2Map(dataAggregate, nameJoinColumn = "country", joinCode = "NAME")
-colourPalette <- RColorBrewer::brewer.pal(10, 'Reds')
+colourPalette <- RColorBrewer::brewer.pal(9, 'Reds')
 mapCountryData(worldmaps, 
-               nameColumnToPlot = "Average Emission Value [MtCO₂e] per Country from 1990 to 2020",
+               nameColumnToPlot = "Average Emission Value [MtCO2e] per Country from 1990 to 2020",
                catMethod = 'fixedWidth', 
-               colourPalette = 'diverging', 
+               colourPalette = colourPalette, 
                numCats = 50)
 ```
 
 
-#### Carbon stock
+## Analysis and Visualization of carbon stock 
 
 This dataset captures the carbon stock per country for selected 9 years (1990,2000,2010,2015,2016,2017,2018,2019,2020)
 
-#### Preprocessing
+**Preprocessing**
 
 1. Some columns were converted to a consistent data type\
 2. Missing values were handled with the mice library\
@@ -1599,9 +1280,7 @@ This dataset captures the carbon stock per country for selected 9 years (1990,20
 5. Hence carbon stock was multiplied with forest area.
 6. Finally, the emission dataset was merged with the carbon stock to perform correlation.
 
-```{r carbon-stock-dataset, results='hide'}
-library(mice)
-library(data.table)
+```{r carbon-stock-dataset, include=FALSE}
 data <- read.csv("fra2020-carbonStock.csv")
 data$X1990 <- as.numeric(data$X1990)
 data <- data[which(rowMeans(is.na(data))<0.5), ]
@@ -1626,7 +1305,7 @@ carbonStockData <-separate(carbonStockData, col=year, into = c("y","year"), sep=
 carbonStockData$y <- NULL
 
 
-forestArea <- read_csv("FAOSTAT_data_6-9-2021.csv")
+forestArea <- read_csv("FAOSTAT_data_6-9-2021.csv", col_types = cols())
 colnames(forestArea)[colnames(forestArea) == "Area"] <- "country"
 colnames(forestArea)[colnames(forestArea) == "Value"] <- "Area"
 colnames(forestArea)[colnames(forestArea) == "Year"] <- "year"
@@ -1636,8 +1315,6 @@ forestArea <- select(forestArea, c('country', 'year','Area'))
 carbonStockData <- merge(carbonStockData, forestArea, by=c("country","year"))
 carbonStockData <- mutate(carbonStockData, carbonInTonnes = (carbonStockValue * Area))
 ```
-
-#### Analysis and Visualization  of carbon stock 
 
 * The trend of carbon stock globally from 1990 to 2018 was shown below\
 
@@ -1674,7 +1351,7 @@ mergedData%>%
 ```
 
 * Here we visualized the countries with the largest carbon stock
-```{r countries-with the-highest-carbon-stock-in-forests, echo=FALSE, results = 'hide'}
+```{r countries-with the-highest-carbon-stock-in-forests, echo=FALSE, message=FALSE}
 carbonStockData %>%
   drop_na()%>%
   group_by(country)%>%
@@ -1690,7 +1367,7 @@ carbonStockData %>%
 We seek to answer the correlation question here, we start by comparing both variables per year.
 
 * Correlation plot
-```{r correlation-plots2, echo=FALSE, results = 'hide'}
+```{r correlation-plots2, echo=FALSE, message=FALSE}
 mergedData%>%
   ggplot(aes(x=emissionSum, y=carbonStockSum)) + geom_point(color="red") +
   labs(x="GHG emissions [1000 tonnes]", y = "Sum of carbon stock in forests [1000 tonnes]", title="GHG emissions against carbon stock in forests, per year") +
@@ -1724,9 +1401,8 @@ Here, the objective of our analysis is to investigate how much GHG will be absor
 #### Analysis and Visualization
 
 * Comparison between absorbed carbon and forest area
-```{r forest-area-against-absorbed-carbon, echo=FALSE, results='hide'}
-library(mice)
-data <- read_csv("fra2020-carbonStock.csv")
+```{r forest-area-against-absorbed-carbon, echo=FALSE, warning=FALSE}
+data <- read_csv("fra2020-carbonStock.csv", col_types = cols())
 forestArea <- read_csv("FAOSTAT_data_6-9-2021.csv")
 colnames(forestArea)[colnames(forestArea) == "Area"] <- "country"
 colnames(forestArea)[colnames(forestArea) == "Value"] <- "Area"
@@ -1741,7 +1417,7 @@ data <- data%>%
 data
 ```
 
-```{r regression-plots, echo=FALSE}
+```{r regression-plots, echo=FALSE, message=FALSE}
 df_reg_lines <- expand_grid(intercept = 82:88, slope = seq(0.4, 0.6, 0.1))
 data %>%
   ggplot(aes(y = totalArea, x = totalCarbonAbsorbed)) + geom_point(color="red1") + geom_smooth(method = "lm", size = 1, fill="deepskyblue2") + 
@@ -1751,7 +1427,6 @@ The result below was gotten after using linear regression \
 
 #### Result
 ```{r linear-regression, echo=FALSE}
-library(tidymodels)
 linear_reg() %>%
  set_engine("lm") %>%
  fit(formula = totalCarbonAbsorbed ~ totalArea, data = data) %>%
@@ -1766,8 +1441,289 @@ linear_reg() %>%
 
 * Therefore, a unit increase in forest area, results in a decrease in the quantity of emitted CO2 by 0.00243
 
-# Summary
+## Relation between forest area and air pollution
+
+### TODO: which data set is used here?
+
+The air pollution data has air quality value in microgram cubic metre from the year 1990 to 2019. However, a few years \n data is not available.
+Air quality shows changes in the amount of pollution in the air. 
+
+```{r air-pollution-data, include=FALSE}
+
+AirPollution <- read_csv("EXP_PM2_Air_Quality.csv")
+colnames(AirPollution)[colnames(AirPollution) == "Value"] <- "AirPollution"
+glimpse(AirPollution)
+
+AirPollution <- AirPollution %>% 
+  select(c("Country", "Year","AirPollution")) %>% 
+  group_by(Country,Year) %>% 
+  glimpse()
+
+```
+
+```{r merged-data-set, include=FALSE}
+mergedData <- merge(forest_countries, AirPollution, by=c("Country","Year")) %>%
+  select(c('Country','Year','ForestArea','AirPollution')) %>% 
+  drop_na() %>% 
+  group_by(Year) %>% 
+  summarize(TotalForestArea = sum(ForestArea), TotalAirPollution = sum(AirPollution)) %>% 
+  ungroup() %>% 
+  unique()
+mergedData
+
+```
+
+```{r correlation-plots, echo=FALSE, message=FALSE}
+mergedData %>% 
+  ggplot(aes(x = TotalForestArea, y = TotalAirPollution)) +
+  geom_point(size = 4, alpha=0.7, color = "#056b5f") +
+  labs(x="Total Forest Area [1000 ha]", y = "Total Air Pollution", title="Correlation between Forest Area and Air Pollution (globally)") + 
+  geom_smooth(method = 'lm')+
+  ggrepel::geom_text_repel(
+    aes(label = Year), 
+    color = "black", size = 7/.pt)+
+  scale_x_continuous(labels = scales::comma)+
+  scale_y_continuous(labels = scales::comma)
+```
+
+### Findings:
+* No linear relationship between Forest Area and Air Pollution
+
+## Correlation Value
+```{r correlation2, echo=FALSE}
+corr <- cor(x = mergedData$TotalForestArea, y = mergedData$TotalAirPollution, use = "everything", method = "kendall")
+paste("Kendall = ", corr)
+
+```
+Findings:
+A negative correlation coefficient shows the variables are moving in the opposite direction.
+
+## Regression Analysis
+
+```{r regression, echo=FALSE}
+# merge  data sets and remove missing values
+
+data <-  merge(forest_countries,AirPollution,by=c("Country","Year")) %>%
+  drop_na() %>% 
+  select(c("Country","Year","ForestArea","AirPollution"))
+ 
+```
+
+## fit model and estimate parameters
+
+```{r build-model, echo=FALSE}
+linear_reg() %>%
+  set_engine("lm") %>%
+  fit(formula = ForestArea ~ AirPollution, data = data) -> model
+model
+
+```
+Findings:
+
+
+## extrapolation
+```{r tidy, echo=FALSE}
+fit <- linear_reg() %>%
+  set_engine("lm") %>%
+  fit(formula = ForestArea ~ AirPollution, data = data) 
+
+fit %>% tidy()
+```
+Findings:
+Very low p-value signifies that Forest Area and Air Pollution are independent of each other.
+
+## Residual Plot
+
+```{r residual-plot-Air-Pollution, echo=FALSE}
+augment(fit$fit) %>%
+  ggplot(aes(x = ForestArea, y = AirPollution)) +
+  geom_point(aes(color=.resid)) +
+  geom_smooth(method = "lm") +
+  scale_color_gradient2(mid = "gray80") +
+  labs(title = "Residual",
+       x = "Forest Area [1000 ha]", 
+       y = "AirPollution(Micrograms per cubic metre)", color = "Residuals") +
+  scale_y_continuous(labels = scales::comma)
+```
+Finding:
+
+* As our data set is non-linearly associated, the residual plot here assesses the appropriateness of our linear regression
+
+* In the plot the residual of data points are away from zero show the model is not a good fit
+
+
+
+### For more reliable results of the relationship between Forest Area and Air Pollution,\n
+we implement Predictive Power Score
+
+```{r air-pollution, echo=FALSE}
+pps1 <- score_df(data %>% 
+                   group_by(Year) %>% 
+                   summarise(AirPollution = sum(AirPollution, na.rm = TRUE), 
+                             ForestArea = sum(ForestArea)) %>% ungroup() %>% 
+                   select(AirPollution, ForestArea))
+
+pps1
+```
+Findings:
+
+Predictive Power Score of 0 shows no relationship between Forest Area and Air Pollution
+
+## Top 10 countries with most air pollution
+```{r Air-Pollution-plot, echo=FALSE}
+AirPollution %>% 
+  drop_na() %>% 
+  group_by(Country) %>% 
+  summarize(avgAirPollution = mean(AirPollution)) %>% 
+  as.data.frame() %>% 
+  ungroup() %>% 
+  arrange(desc(avgAirPollution)) %>%
+  top_n(10) %>% 
+  ggplot(aes(x = avgAirPollution, y = reorder(Country, avgAirPollution))) +
+  geom_col(fill = "#DE8971", width = 0.5) +
+  theme(legend.position = "none") +
+  labs(
+    x = "Average Air Pollution [Micrograms per cubic metre]",
+    y = "Country",
+    title = "Top 10 countries with highest air pollution ",
+    subtitle = "Time period: 1990 - 2020"
+  )+
+  scale_x_continuous(labels = scales::comma) +
+  theme_minimal()+
+  theme(axis.title.x = element_text(color = "Black" ), text = element_text(family="Arial"))
+```
+Findings:
+
+India has the highest air pollution in the last 30 years 
+
+
+## Least air pollution
+
+```{r Air-Pollution-plot-least, echo=FALSE}
+AirPollution %>% 
+  drop_na() %>% 
+  group_by(Country) %>% 
+  summarize(avgAirPollution = mean(AirPollution)) %>% 
+  as.data.frame() %>% 
+  ungroup() %>% 
+  arrange(desc(avgAirPollution)) %>%
+  top_n(-10) %>% 
+  ggplot(aes(x = avgAirPollution, y = reorder(Country, -avgAirPollution))) +
+  geom_col(fill = "#70AF85", width = 0.6) +
+  theme(legend.position = "none") +
+  labs(
+    x = "Average Air Pollution [Micrograms per cubic metre]",
+    y = "Country",
+    title = "Top 10 countries with least air pollution",
+    subtitle = "Time period: 1990 - 2020"
+  )+
+  scale_x_continuous(labels = scales::comma) +
+  theme_minimal()+
+  theme(axis.title.x = element_text(color = "Black" ), text = element_text(family="Arial"))
+  
+
+```
+Finding:
+Nauru has the least air pollution in the last 30 years.
+
+
+### Air pollution trend in India
+```{r India-plot, echo=FALSE}
+
+AirPollution_India <- AirPollution %>% 
+  group_by(Year) %>% 
+  filter(Country == "India") %>% 
+  summarize(AirPollution = mean(AirPollution)) %>% 
+  ungroup() 
+  
+
+
+AirPollution_India %>% 
+  ggplot(aes(x = Year, y = AirPollution))+
+  geom_point(color =  "#79198a", size = 5, alpha = 0.6)+
+  geom_line(size = 1.3, alpha = 0.6)+
+  labs(title = "Air Pollution in India through decades",
+       subtitle = "Time period: 1990-2019",
+       x = "Year",
+       y = "Average Air Pollution [Micrograms per cubic metre]")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text(),text = element_text(family = "Arial"))+
+  theme(plot.subtitle = element_text(size = rel(0.8)))
+```
+Findings:
+* Air Pollution drastically increased after the year 2005.
+* It was highest in 2012.
+* It decreased in 2005 by ~10 Micrograms per cubic metre.
+* Sudden decrease around 2017.
+* Increased slightly in 2019 again
+
+
+### Air pollution trend in Nauru
+```{r nauru-plot, echo=FALSE}
+
+AirPollution_Nauru <- AirPollution %>% 
+  group_by(Year) %>% 
+  filter(Country == "Nauru") %>% 
+  summarize(AirPollution = mean(AirPollution)) %>% 
+  ungroup() 
+
+AirPollution_Nauru %>% 
+  ggplot(aes(x = Year, y = AirPollution))+
+  geom_point(color =  "#53ab0f", size = 5, alpha = 0.6)+
+  geom_line(size = 1.3, alpha = 0.6)+
+  labs(title = "Air Pollution in Nauru through decades",
+       subtitle = "Time period: 1990-2019",
+       x = "Year",
+       y = "Average Air Pollution [Micrograms per cubic metre]")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text(),text = element_text(family = "Arial"))+
+  theme(plot.subtitle = element_text(size = rel(0.8)))
+```
+Findings:
+* Air Pollution varies in range of 5 Micrograms per cubic metre and ~7 Micrograms per cubic metre.
+* Least in 2014
+
+## Required forests for Current Co2 emmission.
+
+The map below highlights the countries which have to increase the forest area the most to tackle their current CO2 emissions.
+As our data set only provides C02 emission data from 1990-2018, we used the Arima model time series prediction to predict future CO2 emissions. By taking into account that one acre of forest can absorb about 2.5 tons of carbon annually, the predicted CO2 value is used to find the required amount of additional forest area.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ghg<- tibble(read_csv("historical_emissions.csv")) 
+
+gh1<-ghg%>% filter(Gas=="CO2" & Country!="World") %>% filter(Sector=="Total including LUCF")
+colnames(gh1)[1]<-"name"
+gh1$code <- countrycode(sourcevar = gh1$name,
+                                origin = "country.name",
+                                destination = "iso3c")
+
+#function for time series prediction of the future values co2
+predic_2021<-function(country){
+x<-gh1 %>% filter(name==country) %>% select(-`Data source`,-Sector,-Gas,-Unit,-code) %>% mutate(`1990`=as.double(`1990`)) %>% pivot_longer(cols = -name,names_to = "year",values_to = "emission") %>% arrange(year)
+fit<-arima(ts(x$emission,start = 1990,frequency = 1),order = c(1,2,0))
+predict(fit,n.ahead=5)$pred[3]
+}
+
+ghg_pre<-gh1 %>% rowwise() %>% mutate(new_area=as.numeric(predic_2021(name))/2.5)
+
+
+
+
+plot_ly(ghg_pre, type='choropleth', locations=ghg_pre$code, z=ghg_pre$new_area, text=ghg_pre$name, colors="Purples", marker = list(line = l)) %>% colorbar(title = "Forest Area <br />Required [1000 ha]") %>% layout(
+    title = 'New forest area required <br />to componsate present emission',
+    geo = g
+  )
+
+```
+
+
+# Final Analysis
 
 # Ressources
+
+[1] https://www.zeit.de/wissen/umwelt/2021-06/brasilien-abholzung-amazonasgebiet-regenwald-mai-hoechststand
+
+[2] https://web.archive.org/web/20100222172301/http://www.tagesschau.de:80/ausland/sahelzone100.html.
 
 PPS Score code from ex_6_codealong session 
