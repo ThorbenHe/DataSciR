@@ -7,11 +7,11 @@ subtitle: "Project Notebook"
 author: "Kiran Babu Thatha, Marcel Schulte, Obinna Patrick Nkwocha, Shweta Pandey, Thorben Hebbelmann"
 date: "`r Sys.Date()`"
 bibliography: refs.bib
+#csl: 3-biotech.csl
 output: 
   prettydoc::html_pretty:
     theme: cayman    
     toc: true
-    #toc_float: true
     number_sections: true
     df_print: paged
 ---
@@ -22,7 +22,6 @@ text-align: justify}
 </style>
 
 ```{r setup, include=FALSE}
-#chooseCRANmirror(graphics=FALSE, ind=1)
 knitr::opts_chunk$set(echo = FALSE, cache = TRUE, fig.align = "center", dpi = 300, rows.print = 5, cols.min.print = 5)
 
 library(psych)
@@ -381,7 +380,9 @@ Our first chapter of the project gives an overview over the global forest develo
 
 ## Global forest trends
 
-Starting with the current status of our global forests, the trend line of the global forest area over the last 30 years gives an overview how the forest area of continents developed in the last 30 years. One can see a decrease in the Americas and Africa while Asia recorded a slight increase in forest area. The forest area in Europe as well in Oceania (containing Australia) seems to be quite stable.
+Starting with the current status of our global forests, the trend line of the global forest area gives an overview how the forest area of continents developed. One can see a decrease in the Americas and Africa while Asia recorded a slight increase in forest area. The forest area in Europe as well in Oceania (containing Australia) seems to be quite stable.
+
+Note: in our whole project Americas refers to North and South America.
 
 ```{r forest-continents-scatter-plot}
 newData  %>% 
@@ -389,14 +390,14 @@ newData  %>%
   geom_point(aes(color = Continent), size = 3, shape = 16, alpha = 0.7) +
   scale_y_continuous(limits = c(100000, 1800000), labels = scales::comma) +
   labs(
-    x = "Years",
+    x = "Year",
     y = "Forest area [1000 ha]",
     title = "Global forest area over the last 30 years"
   ) +
   theme_minimal()
 ```
 
-The following map is visualizing the change in forest area from 1990 - 2020 for each country (by hovering over it). It underlines our previous results. While Brazil and therefore South America in general faces worldwide the highest decrease in forest area, China and other Asian countries report a higher value in 2020 compared to 1990.
+The following map is visualizing the change in forest area from 1990 - 2020 for each country. It underlines our previous results. While Brazil and South America in general faces the highest decrease in forest area, China and other Asian countries report a higher value in 2020 compared to 1990.
 
 ```{r}
 tmp <- fra %>% 
@@ -454,7 +455,7 @@ top_data %>%
     x = "Forest area [1000 ha]",
     y = "Country",
     title = "Top 10 countries with the largest forest area",
-    subtitle = "For the year 2020"
+    subtitle = "In the year 2020"
   )+
   scale_x_continuous(labels = scales::comma) +
   theme_minimal()+
@@ -465,12 +466,11 @@ The results are not really surprising as those countries have also the highest s
 
 # Deforestation
 
-In our analysis we are now attempting to answer important questions regarding deforestation, which is actually a part of forest destruction. However we want to highlight this issue in an own chapter as it is directly made by humans. 
-Therefore we will have a look on the main drivers (by countries) of deforestation, showing trends over the continents and making a prediction of how many years it would take until all forests are lost by putting the deforestation and reforestation values over the last 30 years into relation.
+In our analysis we are now attempting to answer important questions regarding deforestation. For this we will have a look on the main drivers of deforestation, show trends over the continents and make a prediction of how many years it would take until all forests are lost by putting the deforestation and reforestation values over the last 30 years in relation.
   
 ## Main drivers of deforestation and forest prediction
 
-By hovering over the following map you can find the data for every country regarding the percentage of forest lost through deforestation in the last 30 years in relation to 1990, the value for deforestation in the last 30 years, the current forest area [1000 ha] and the number of years in which the forest area will be completely lost, given the deforestation for each country in the last 30 years.
+By hovering over the following map you can find the data for every country regarding the percentage of forest lost through deforestation, the value of total deforestation [1000 ha], the current forest area [1000 ha] and the number of years in which the forest area will be completely lost, given the deforestation for each country in the last 30 years.
 
 The color scale is showing the percentage of forest lost, which is making the main drivers of deforestation visible. 
 
@@ -500,7 +500,7 @@ g <- list(
   showocean=TRUE, oceancolor="LightBlue"
 )
 div(
-  plot_ly(def_30, type='choropleth', locations=~def_30$code, z=~def_30$percent_change_1, text=~paste(name,paste("Deforestation in the last 30 years:",t_deforestation ), paste("Current forest area:",`2020` ), paste("Years until forest area will be lost:", year) ,sep = "<br />"), marker = list(line = l), colors = "Purples")  %>% 
+  plot_ly(def_30, type='choropleth', locations=~def_30$code, z=~def_30$percent_change_1, text=~paste(name,paste("Deforestation in the last 30 years:",t_deforestation ), paste("Current forest area:",`2020` ), paste("Years until forest area will be lost:", year), sep = "<br />"), marker = list(line = l), colors = "Purples")  %>% 
   colorbar(title = "Forest loss through deforestation [%]", ticksuffix = '%') %>% 
   layout(
     title = 'Deforestation analysis of the last 30 years',
@@ -509,36 +509,58 @@ div(
 ```
 
 
-Note: for some countries the deforestation data is 0 or not available. If possible, for those countries the deforestation value was calculated by the difference of the forest area between 1990 and 2020. Otherwise they are colored white.
+Note: for some countries the deforestation data is 0 or not available. If possible, for those countries the deforestation value was calculated by the difference of the forest area between 1990 and 2020, otherwise they are colored white.
 
-The two following bar plots are intended to illustrate the result once again. First, the top 20 countries that do not seem to have a problem with the current level of deforestation, given there forest area and then the top 20 countries that could lose their forest area due to too much deforestation within the next 100 years.
+The two following bar plots are intended to illustrate the result once again. First, the top 20 countries which do not seem to have a problem with the current level of deforestation given their forest area and then the countries which could lose their forest area within the next 50 years due to too much deforestation.
 
 ```{r}
 defTop <- def_30 %>%
   arrange(desc(year)) %>%
   head(20)
 
-div(plot_ly(defTop, x=defTop$year, y = fct_rev(fct_inorder(defTop$name))) %>% layout(
-  title = 'Years until forest area lost',xaxis = list(title = 'Years'),yaxis = list(title = 'Countries')
+div(plot_ly(defTop,  type="bar", x=defTop$year, y = fct_rev(fct_inorder(defTop$name))) %>% layout(
+  title = 'Years until forest area is lost based on deforestation',xaxis = list(title = 'Years'),yaxis = list(title = 'Countries')
 ), align = "right")
 ```
 
-```{r}
+```{r warning=FALSE}
 defBot <- def_30 %>%
   drop_na() %>%
-  arrange(desc(year)) %>%
-  tail(20)
+  filter(year <= 50) %>% 
+  arrange(year)
 
-div(plot_ly(defBot, x=defBot$year, y = fct_rev(fct_inorder(defBot$name)), color = "red") %>% layout(
-  title = 'Years until forest area lost based on deforestation',xaxis = list(title = 'Years'),yaxis = list(title = 'Countries')
+div(plot_ly(defBot, type="bar", x=defBot$year, y = fct_rev(fct_inorder(defBot$name)), color = "red") %>% layout(
+  title = 'Years until forest area is lost based on deforestation',xaxis = list(title = 'Years'),yaxis = list(title = 'Countries')
 ), align = "right")
 ```
 
-Countries that are actually located in the subtropical zone with a lot of rainforest, such as Nicaragua, Indonesia, Paraguay, Uganda or Ivory Coast, should be highlighted here. Since we were also wondering why Brazil is missing in this list (given recent reports), we noticed later in our analysis, that the area of burned forests are extraordinary high. Assuming that the burned forest area belongs to the cause of deforestation and not wildfires, Brazil would loose it's forests far earlier than in 133 years.
+```{r, message=FALSE}
+brazilfire <- fra_data %>% 
+  filter(name == "Brazil") %>% 
+  summarise(Fire = sum(Fire, na.rm = TRUE)) %>%
+  mutate(fireYear = Fire/18)
+
+brazildef <- def_30 %>%
+  filter(name == "Brazil") %>%
+  mutate(defYear = t_deforestation/31) %>%
+  mutate(brazilTotal = brazilfire$fireYear + defYear)
+
+brazilarea <- fra %>% 
+  filter(name == "Brazil", year == 2020)
+
+brazilYears <- round(brazilarea$`1a_forestArea` / brazildef$brazilTotal)
+
+brazilDefYears <- def_30 %>% 
+  filter(name == "Brazil") %>% 
+  select(year) %>% 
+  pull(year)
+```
+
+Countries that are actually located in the subtropical zone with a lot of rainforest, such as Nicaragua, Uganda or Ivory Coast should be highlighted here. Since we were also wondering why Brazil is missing in this list (given recent reports), we noticed later in our analysis, that the area of burned forests are extraordinary high. Assuming that the burned forest area belongs to the cause of deforestation and not wildfires, Brazil would lose it's forests far earlier: in `r brazilYears`  instead of `r brazilDefYears` years.
 
 ## Deforestation trends by continent 
 
-The chart below shows trends in the deforestation over the last thirty years over 5 continents. Unfortunately, our dataset only provides intervals in 5 respectively 10 year steps, which is why it is not possible to show a more precise trend line.
+The chart below shows trends in the deforestation over the last thirty years over 5 continents. Unfortunately, our dataset only provides intervals in 5 respectively 10 year steps, which is why it is not possible to show a more precise trend line. Each point represents the total amount of deforestation for the given interval.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 world <- map_data("world") %>% 
@@ -569,7 +591,7 @@ ggplot(trends_def, aes(x = as.integer(year), y = t_deforestation, color = contin
   scale_x_continuous(breaks = c(0,1,2), labels = c("1990-2000", "2000-2010", "2010-2020")) +
   scale_y_continuous(labels = scales::comma) +
   labs(
-    title = 'Deforestation Trends on continents between 1990-2020',
+    title = 'Deforestation trends on continents between 1990-2020',
     x = 'Year',
     y = 'Deforestation [1000 ha]',
     color = "Continent"
@@ -577,11 +599,11 @@ ggplot(trends_def, aes(x = as.integer(year), y = t_deforestation, color = contin
   theme_minimal()
 ```
 
-Note: the Americas refer to North and South America.
+Unfortunately, the trends on deforestation are not very accurate, as many countries have not provided any data on deforestation. Among them are also large countries like the USA, which is why you have to be very careful with interpretations.
 
 # Reforestation
 
-In this part we want to dig in deeper into the topic of the reforestation by analyzing which countries are the main drivers, whether there is a correlation between reforestation and deforestation and showing the trends over continents.
+In this part we want to dig in deeper into the topic of reforestation by analyzing which countries are the main drivers, whether there is a correlation between reforestation and deforestation and by showing the trends over continents.
 
 ## Main drivers of reforestation
 
@@ -600,10 +622,11 @@ ref_data <- bind_rows(refplot, rest_ref) %>% mutate(name = factor(name))
 ```{r, echo=FALSE}
  ggplot(ref_data, aes(x = totalref, y = fct_rev(fct_inorder(name)))) +
   geom_col(fill = "Forestgreen") +
+  scale_x_continuous(labels = scales::comma) +
   labs(
-    y = "Increase between 1990-2020 [1000 ha]",
-    x = NULL,
-    title = "Top 20 countries of total reforestation between 1990 and 2020"
+    x = "Increase in forest area [1000 ha]",
+    y = NULL,
+    title = "Top 20 countries by total reforestation between 1990 and 2020"
   ) 
 ```
 
@@ -644,7 +667,7 @@ This leads us to quite surprising results, e.g. that Algeria is one of the count
 increase$code <- countrycode(increase$name, origin = "country.name", destination = "iso3c")
 ```
 
-By hovering over the following map, a tooltip of the reforestation increase for each country is shown. The greener the country, the higher is the increase.
+By hovering over the following map, a tooltip with the reforestation increase for each country is shown. The greener the country, the higher is the increase.
 
 ```{r, echo=FALSE, warning = FALSE}
 
@@ -669,7 +692,7 @@ colorbar(ticksuffix = '%') %>%
 
 ## Relation between reforestation and deforestation
 
-After we have now an overview on reforestation and deforestation we want to answer the question whether governments try to "make up" for the deforestation in the last 30 years.
+After we have now an overview on reforestation and deforestation, we want to answer the question whether governments try to "make up" for the deforestation in the last 30 years.
 
 ```{r, include = FALSE}
 corref <- total_reforestation %>%
@@ -691,7 +714,7 @@ ggplot(data = corref, mapping = aes(x = totalref, y = totaldef)) +
   labs(x = "Total reforestation [1000 ha]", y = "Total deforestation [1000 ha]")
 ```
 
-There are many outliers with either very high deforestation or reforestation figures. However, such outliers are not surprising when taking a look into recent news.For example Brazil, a country with one of the biggest rainforest areas, has been making negative headlines for years with it's environment politics [@zeitamazonas].
+There are many outliers with either very high deforestation or reforestation figures. However, such outliers are not surprising when taking a look into recent news. For example Brazil, a country with one of the biggest rainforest areas, has been making negative headlines for years with it's environment politics [@zeitamazonas].
 
 We now zoom in to have a closer look on the data without the outliers by downsizing the scale.
 
@@ -707,42 +730,42 @@ ggplot(data = corref, mapping = aes(x = totalref, y = totaldef)) +
   labs(x = "Total reforestation [1000 ha]", y = "Total deforestation [1000 ha]")
 ```
 
-The figure shows already a high and not linear distribution of our data.
+The figure shows already a high and not linear distribution of our data. With the Shapiro-Wilk test we want to show the normality of our data.
 
 ```{r, include = FALSE}
 corref <- corref %>%
 select(totalref, totaldef)
 ```
 
-With the Shapiro-Wilk test we want to show the normality of our data.
-
 ```{r, echo=FALSE}
 shapiro.test(corref$totalref)
 shapiro.test(corref$totaldef)
 ```
 
-The values are below 0.05 for both, reforestation and deforestation, the data significantly deviate from a normal distribution. A result which was already highlighted by the graph.
+The values are below 0.05 for both, reforestation and deforestation, the data significantly deviate from a normal distribution. A result which is already highlighted by the graph.
 
 As the data is therefore not linear, we should choose the Spearman method to calculate the correlation.
 
 ```{r, echo=FALSE, warning = FALSE}
-corrr::correlate(corref, quiet = TRUE, method = "spearman") 
-Spear <- cor.test(corref$totalref, corref$totaldef, method = 'spearman')
+c <- cor(x = corref$totalref, y = corref$totaldef, use = "pairwise.complete.obs", method = "spearman")
+paste("Spearman = ", c)
 ```
 
 With a value of 0.54 it shows a strong positive correlation, which means, that deforestation has actually an impact on reforestation and a relationship exists. 
+
+Additionally, we calculated the power predictive score to calculate the impact of deforestation on reforestation. 
  
 ```{r}
 pps <- score_df(corref %>% select(totalref, totaldef))
 
-pps
+pps %>% filter(result_type == "predictive power score")
 ```
 
-Additionally, we calculated the power predictive score to calculate the impact of deforestation on reforestation. However this value is with 0.13 not as high as expected after the correlation result.
+However this value is with 0.14 not as high as expected after the correlation result.
 
 ## Reforestation trends by continent
 
-Finally we are going to take a look on the trend line of the continents and their given total reforestation in the given time intervals of 10 years between 1990 and 2020.
+Finally we are going to take a look on the trend line of the continents and their given total reforestation in the given time intervals of 10 years between 1990 and 2020. Again each point represents the total amount of reforestation for the given interval.
 
 ```{r, include = FALSE}
 world <- map_data("world") %>% 
@@ -773,7 +796,7 @@ ggplot(trends_ref, aes(x = as.integer(year), y = t_reforestation, color = contin
   scale_x_continuous(breaks = c(0,1,2), labels = c("1990-2000", "2000-2010", "2010-2020")) +
   scale_y_continuous(labels = scales::comma) +
   labs(
-    title = 'Reforestation Trends on continents between 1990-2020',
+    title = 'Reforestation trends on continents between 1990-2020',
     x = 'Year',
     y = 'Reforestation [1000 ha]',
     color = "Continent"
@@ -781,14 +804,13 @@ ggplot(trends_ref, aes(x = as.integer(year), y = t_reforestation, color = contin
   theme_minimal()
 ```
 
-One can notice, that reforestation is increasing on many continents, while in the deforestation part we could detect a decrease of deforestation in some continents. It would be very interesting to do another correlation analysis in a few years. The trend seems to be clearly going in the direction of a higher correlation that deforestation has an impact on reforestation, at least for some continents and countries.
+One can notice, that reforestation in Asia is on a very high level throughout the last 30 years and that Americas are increasing their reforestation efforts with each interval. Also worth mentioning is that Europe does a lot of reforestation when considering how little deforestation happened there (see Deforestation Trends). It would be very interesting to do another correlation analysis in a few years. 
 
 # Forest Destruction
 
-The next part of our project is about forest destruction and tries to answer what the main causes of forest destruction are and which countries are affected the most. We also take a look at the relationship between wildfires and rising temperatures and try to predict where and when wildfires are likely to occur.
+The next part of our project is about forest destruction and includes only forest loss which is not directly caused by human. We try to answer what the main causes of forest destruction are and which countries are affected the most. We also take a look on the relationship between wildfires and rising temperatures and try to predict where and when wildfires are likely to occur.
 
-For the first two questions we decided to look at a global scale and for the country Germany.  
-For the third question we decided to look at a global scale and for the continent Europe.
+For the first two questions we decided to look at a global scale and for the country Germany. For the third question we decided to look at a global scale and for the continent Europe. For these questions we replaced missing values with 0, so as we have already mentioned earlier, the results will be underestimations. However, the results of Germany have no missing values and should be reliable.
 
 Note: In our interactive shiny website you can pick the country / continent of your interest.
 
@@ -815,7 +837,7 @@ plot_yearly_forest_destruction_by_region <- function(region = 'Global') {
     labs(title = "Forest destruction per year and cause",
          subtitle = glue::glue("Region: {region} - Time period: 2000 - 2017"),
          x = "Year",
-         y = "Forest Area [1000 ha]",
+         y = "Forest area [1000 ha]",
          fill = "Cause") +
     theme_minimal()
 }
@@ -824,9 +846,9 @@ plot_yearly_forest_destruction_by_region()
 plot_yearly_forest_destruction_by_region('Germany')
 ```
 
-On a global scale wildfires are clearly the dominant cause of forest destruction over the years. However, this does not apply for every individual country. For example: Germany's main cause of forest destruction are insects. One can also see that there is no obvious trend to find over this small time scale.
+On a global scale, wildfires are clearly the dominant cause of forest destruction over the years. However, this does not apply for every individual country. For example: Germany's main cause of forest destruction are insects. One can also see that there is no obvious trend to find over this small time scale.
 
-Note: the peak in the plot about Germany was caused by the heat wave in 2003.
+Note: the peak in the plot about Germany was quite likely caused by the heat wave in 2003 [@spiegel].
 
 **Destroyed forest by cause**
 
@@ -851,7 +873,7 @@ plot_total_forest_destruction_by_region <- function(region = 'Global') {
     labs(title = "Total forest destruction by cause",
          subtitle = glue::glue("Region: {region} - Time period: 2000 - 2017"),
          x = "",
-         y = "Forest Area [1000 ha]") +
+         y = "Forest area [1000 ha]") +
     scale_y_continuous(labels = scales::comma) +
     scale_fill_manual(values = c(Weather = "#2b83ba", Others = "#ffffbf", Fire = "#d7191c",
                                  Diseases = "#fdae61", Insects = "#abdda4")) +
@@ -864,7 +886,7 @@ plot_total_forest_destruction_by_region <- function(region = 'Global') {
     scale_fill_manual(values = c(Weather = "#2b83ba", Others = "#ffffbf", Fire = "#d7191c",
                                  Diseases = "#fdae61", Insects = "#abdda4")) +  
     labs(x = "",
-         y = "Forest Area [1000 ha]",
+         y = "Forest area [1000 ha]",
          fill = "Cause") +
     theme_void()
   
@@ -883,7 +905,7 @@ plot_total_forest_destruction_by_region('Germany')
 
 Again we can see the huge impact of wildfires. On a global scale they make up more than 50% of forest destruction, destroying more than 1 Billion ha of forest. Insects make up almost 25% of forest destruction, destroying roughly 500 Million ha of forest. These two are clearly the main drivers of global forest destruction.
 
-In Germany insects and diseases are the main drivers of forest destruction, destroying approximately 2.5 Million ha of forest over this 18 years time period. However, wildfires are no significant problem at all in Germany. 
+In Germany insects and diseases are the main drivers of forest destruction, destroying approximately 2.5 Million ha of forest over this 18 year time period. However, wildfires are no significant problem at all in Germany. 
 
 ## Most affected countries
 
@@ -906,15 +928,15 @@ plot_highest_forest_destruction <- function(cont = 'Global', number = 15, cs = '
     mutate(total = sum(area, na.rm = TRUE)) %>% 
     ungroup() %>% 
     arrange(desc(total)) %>% 
-    slice(1:(5*number)) %>% 
-    ggplot(aes(x=area, y=reorder(name, area), fill=reorder(cause, desc(area)))) +
+    slice(1:(5*number)) %>%
+    ggplot(aes(x=area, y=reorder(name, area), fill=reorder(cause, desc(area)) %>% fct_relevel("Others", after = Inf))) +
     geom_col() +
     scale_x_continuous(labels = scales::comma) +
     scale_fill_manual(values = c(Weather = "#2b83ba", Others = "#ffffbf", Fire = "#d7191c",
                                  Diseases = "#fdae61", Insects = "#abdda4")) + 
-    labs(title = glue::glue("The {number} Countries with the highest forest destruction"),
+    labs(title = glue::glue("The {number} countries with the highest forest destruction"),
          subtitle = glue::glue("Region: {cont} - Time period: 2000 - 2017"),
-         x = "Forest Area [1000 ha]",
+         x = "Forest area [1000 ha]",
          y = "Country",
          fill = "Cause") +
     theme_minimal()
@@ -926,13 +948,18 @@ plot_highest_forest_destruction()
 plot_highest_forest_destruction("Europe", 5, "All")
 ```
 
-As one would expect from our previous findings, the most affected countries mostly struggle with wildfires. The only exceptions to this are the USA, Canada, China, Sudan and Mexico. Brazil is the most affected country and has a huge wildfire problem. However, since Brazil is a tropical region and therefore very humid these wildfires are most likely caused by humans [@zeitamazonas]. For Europe one can see that except for Russia, Europe's most affected countries have no problem with wildfires. 
+As one would expect from our previous findings, the most affected countries mostly struggle with wildfires. The only exceptions to this are the USA, Canada, China, Sudan and Mexico. Brazil is the most affected country and has a huge wildfire problem. However, since Brazil is a tropical region and therefore very humid, these wildfires may also be caused by humans [@zeitamazonas]. For Europe one can see that except for Russia, Europe's most affected countries have no huge problem with wildfires. 
 
 ## Relation between rising temperatures and wildfires
 
-**Overview:**
+As already mentioned when introducing the forest destruction dataset, the wildfire correlation considers only countries with no missing wildfire values for any given year. We made this restriction to make sure that each year has an equal amount of real values. The 73 countries which are in the following considered are shown below:
 
-```{r fire_temp_corr_preprocessing, include=FALSE}
+```{r}
+temp_fra %>% select(name) %>% unique()
+```
+
+
+```{r fire_temp_corr_global, include=FALSE}
 global_yearly_tc <- temperature_data %>% 
   filter(Area == 'World', 
          Element == 'Temperature change', 
@@ -948,17 +975,19 @@ fra_tc_global <- inner_join(temp_fra, global_yearly_tc, by=c("year"))
 fra_tc_global
 ```
 
-```{r todo, include=FALSE}
+```{r fire_temp_corr_local, include=FALSE}
 local_yearly_tc <- temperature_data %>% 
   filter(Element == 'Temperature change', 
          Months == 'Meteorological year') %>% 
   select(Area, Year, Value) %>% 
   rename(name = Area, year = Year, temp_increase = Value)
 
-fra_tc_local <- inner_join(fra_data, local_yearly_tc, by=c("name", "year"))
+fra_tc_local <- inner_join(temp_fra, local_yearly_tc, by=c("name", "year"))
 
 fra_tc_local
 ```
+
+Our first visualization below doesn't suggest any clear linear correlation, but it can be improved to make the interpretation easier. Again, the temperature increase given in this dataset is in relation to a baseline temperature which corresponds to the period of 1951–1980.
 
 ```{r fire_temp_corr_plot3}
 fra_tc_global %>% 
@@ -972,17 +1001,14 @@ fra_tc_global %>%
   labs(title = "Global area of wildfires per year",
        subtitle = "Time period: 2000 - 2017",
        x = "Year",
-       y = "Wildfire Area [1000 ha]",
+       y = "Wildfire area [1000 ha]",
        fill = "Temperature increase [C°]") +
   theme_minimal()
 ```
 
-Our first visualization doesn't suggest any linear correlation, but it can be improved to make the interpretation clearer. Again, the temperature increase given in this dataset is in relation to a baseline temperature which corresponds to the period of 1951–1980.
-
-Next we compare global yearly temperature changes to global forest area destructed by wildfires.
+Next we compare global yearly temperature changes to global forest area destructed by wildfires with a different graph.
 
 ```{r fire_temp_corr_plot, message=FALSE}
-# Forest
 fra_tc_global %>% 
   group_by(year) %>% 
   summarise(fire = sum(Fire, na.rm = TRUE), 
@@ -996,123 +1022,15 @@ fra_tc_global %>%
     aes(label = year), 
     color = "black", size = 7/.pt) +
   labs(
-    title = "Relationship between global temperature increase and wildfire area",
+    title = "Relation between global temperature increase and wildfire area",
     subtitle = "Time period: 2000 - 2017",
-    x = "Temperature Increase [C°]",
-    y = "Wildfire Area [1000 ha]" 
+    x = "Temperature increase [C°]",
+    y = "Wildfire area [1000 ha]" 
   ) +
   theme_minimal()
-
-# Land
-# fra_tc_global %>% 
-#   group_by(year) %>% 
-#   summarise(fire = sum(`5b_fire_land`, na.rm = TRUE), 
-#             temp = temp_increase) %>% 
-#   ggplot(aes(x=temp, y=fire)) +
-#   geom_line() + 
-#   geom_point() +
-#   labs(
-#     title = "Relationship between global temperature increase and gloabl fire area",
-#     subtitle = "Time period: 2000 - 2017",
-#     x = "Temperature Increase [C°]",
-#     y = "Fire Area [1000 ha]" 
-#   ) +
-#   theme_minimal()
-
-# TODO: Change argumentation chain 
-# Keep in mind that land includes forest!!!
 ```
 
-There is no linear correlation visible for both land and forest fires and rising temperatures.
-
-Now we compare global yearly temperature changes to the global count of wildfires.
-
-```{r fire_temp_corr_plot2, message=FALSE}
-# Forest
-fra_tc_global %>% 
-  mutate(Fire = case_when(
-    is.na(Fire) | Fire == 0 ~ FALSE,
-    TRUE ~ TRUE
-  )) %>% 
-  group_by(year) %>% 
-  summarise(fire = sum(Fire, rm.na = TRUE), temp = temp_increase) %>% 
-  ungroup() %>% 
-  unique() %>% 
-  ggplot(aes(x=temp, y=fire)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  ggrepel::geom_text_repel(
-    aes(label = year), 
-    color = "black", size = 7/.pt) +
-  labs(
-    title = "Relationship between global temperature increase and\nthe number of countries which had atleast one wildfires in a given year",
-    subtitle = "Time period: 2000 - 2017",
-    x = "Temperature Increase [C°]",
-    y = "Affected countries" 
-  ) +
-  theme_minimal()
-
-# # Land
-# fra_tc_global %>% 
-#   mutate(`5b_fire_land` = case_when(
-#     is.na(`5b_fire_land`) | Fire == 0 ~ FALSE,
-#     TRUE ~ TRUE
-#   )) %>% 
-#   group_by(year) %>% 
-#   summarise(fire = sum(`5b_fire_land`, rm.na = TRUE), 
-#             temp = temp_increase) %>% 
-#   ggplot(aes(x=temp, y=fire)) +
-#   geom_line() + 
-#   geom_point() +
-#   labs(
-#     title = "Relationship between global temperature increase and the global amount of fires",
-#     subtitle = "Time period: 2000 - 2017",
-#     x = "Temperature Increase [C°]",
-#     y = "Number of wildfires" 
-#   ) +
-#   theme_minimal()
-```
-
-Again there is no linear correlation visible for both land and forest fires and rising temperatures.
-Maybe we can find a correlation if go more into detail and show not only global values but values for each country and each year:
-
-```{r}
-fra_tc_local %>% 
-  filter(!is.na(Fire)) %>% 
-  ggplot(aes(y=Fire, x=temp_increase, color = continent)) +
-  geom_point(alpha = 0.5) +
-  # geom_smooth(se = FALSE) +
-  scale_y_continuous(labels = scales::comma) +
-  labs(title = "Area of wildfires per year and country",
-       subtitle = "Time period: 2000 - 2017",
-       x = "Temperature increase [C°]",
-       y = "Wildfire Area [1000 ha]",
-       color = "Continent") +
-  theme_minimal()
-```
-
-```{r animated_plot}
-
-p <- fra_tc_local %>% 
-  filter(!is.na(Fire)) %>% 
-  mutate(year = as.integer(year)) %>% 
-  ggplot(aes(y=Fire, x=temp_increase, color = continent)) +
-  geom_point(alpha = 0.5, show.legend = FALSE) +
-  # geom_smooth(se = FALSE) +
-  facet_wrap(~continent) +
-  scale_y_continuous(labels = scales::comma, limits = c(0,100)) +
-  theme_minimal() +
-  labs(title = "Area of wildfires per year and country",
-       subtitle = "Year: {frame_time}",
-       x = "Temperature increase [C°]",
-       y = "Wildfire Area [1000 ha]",
-       color = "Continent") +
-  transition_time(year) +
-  ease_aes('linear')
-
-
-animate(p, renderer = gifski_renderer())
-```
+Looking at the plot, there seems to be a correlation between these two variables. To quantify these results, we now calculate a correlation score. Since we have only 18 observations, we will use the Kendall correlation coefficient.
 
 ```{r}
 corr_data <- fra_tc_global %>% 
@@ -1125,39 +1043,95 @@ x <- cor(x = corr_data$Temperature, y = corr_data$Wildfires, use = "everything",
 paste("Kendall = ", x)
 ```
 
+The results show that there is a moderate positive correlation (`r x`) between global temperature increase and wildfire area.
 
-We need a way to quantify these results. Since the data is clearly not linear we use the Predicitive Power Score [..] as a measure for correlation.
 
-```{r}
-pps1 <- score_df(fra_tc_global %>% 
-                   group_by(year) %>% 
-                   summarise(Wildfires = sum(Fire, na.rm = TRUE), 
-                             Temperature = mean(temp_increase)) %>% ungroup() %>% 
-                   select(Temperature, Wildfires), cv_folds = 2)
 
-pps1
-#p1 <- plot_pps(pps1, "PPS matrix for\nglobal wildfire area")
+Now we also take a look at the relation between global yearly temperature changes and the global count of countries with at least one wildfires in a given year.
 
-pps2 <- score_df(fra_tc_global %>% 
-                   mutate(Fire = case_when(
-                     is.na(Fire) | Fire == 0 ~ FALSE,
-                     TRUE ~ TRUE
-                   )) %>% 
-                   group_by(year) %>% 
-                   summarise(Wildfires = sum(Fire, na.rm = TRUE), 
-                             Temperature = mean(temp_increase)) %>% 
-                   ungroup() %>% 
-                   select(Temperature, Wildfires))
-pps2
-#p2 <- plot_pps(pps2, "PPS matrix for\nglobal wildfire count")
-
-pps3 <- score_df(fra_tc_local %>% select(name, temp_increase, Fire))
-
-pps3
-#p3 <- plot_pps(pps3, "PPS matrix for\ncountry wildfire area")
+```{r fire_temp_corr_plot2, message=FALSE}
+fra_tc_global %>% 
+  mutate(Fire = case_when(
+    is.na(Fire) | Fire == 0 ~ FALSE,
+    TRUE ~ TRUE
+  )) %>% 
+  group_by(year) %>% 
+  summarise(fire = sum(Fire, rm.na = TRUE), temp = temp_increase) %>% 
+  ungroup() %>% 
+  unique() %>% 
+  ggplot(aes(x=temp, y=fire)) +
+  geom_point() +
+  ggrepel::geom_text_repel(
+    aes(label = year), 
+    color = "black", size = 7/.pt) +
+  labs(
+    title = "Relation between global temperature increase and countries with wildfires",
+    subtitle = "Time period: 2000 - 2017",
+    x = "Temperature increase [C°]",
+    y = "Affected countries" 
+  ) +
+  theme_minimal()
 ```
 
-There is clearly no correlation recognizable in our data between temperature increase and wildfires.
+There seems to be no linear correlation visible for both land and forest fires and rising temperatures. Again we calculate the Kendall correlation coefficient.
+
+```{r}
+corr_data2 <- fra_tc_global %>% 
+  mutate(Fire = case_when(
+    is.na(Fire) | Fire == 0 ~ FALSE,
+    TRUE ~ TRUE
+  )) %>% 
+  group_by(year) %>% 
+  summarise(Wildfires = sum(Fire, rm.na = TRUE), Temperature = mean(temp_increase)) %>% 
+  ungroup() %>% 
+  select(Temperature, Wildfires)
+
+x2 <- cor(x = corr_data2$Temperature, y = corr_data2$Wildfires, use = "everything", method = "kendall")
+paste("Kendall = ", x2)
+```
+
+As we expected, there is no correlation between global yearly temperature changes and the global count of countries with at least one wildfires in a given year.
+
+Finally we go more into detail and show not only global values but values for each country and each year:
+
+```{r}
+fra_tc_local %>% 
+  filter(!is.na(Fire)) %>% 
+  ggplot(aes(y=Fire, x=temp_increase, color = continent)) +
+  geom_point(alpha = 0.5) +
+  # geom_smooth(se = FALSE) +
+  scale_y_continuous(labels = scales::comma) +
+  labs(title = "Relation between temperature increase and\narea of wildfires per year and country",
+       subtitle = "Time period: 2000 - 2017, each country is represented by 18 points",
+       x = "Temperature increase [C°]",
+       y = "Wildfire area [1000 ha]",
+       color = "Continent") +
+  theme_minimal()
+```
+
+```{r animated_plot, warning=FALSE}
+p <- fra_tc_local %>% 
+  filter(!is.na(Fire)) %>% 
+  mutate(year = as.integer(year)) %>% 
+  ggplot(aes(y=Fire, x=temp_increase, color = continent)) +
+  geom_point(alpha = 0.5, show.legend = FALSE) +
+  # geom_smooth(se = FALSE) +
+  facet_wrap(~continent) +
+  scale_y_continuous(labels = scales::comma, limits = c(0,100)) +
+  theme_minimal() +
+  labs(title = "Relation between temperature increase and\narea of wildfires per year and continent",
+       subtitle = "Year: {frame_time}",
+       x = "Temperature increase [C°]",
+       y = "Wildfire area [1000 ha]",
+       color = "Continent") +
+  transition_time(year) +
+  ease_aes('linear')
+
+
+animate(p, renderer = gifski_renderer())
+```
+
+When we look at a the values for all the countries and also sort them continent-wise, there seems to be no clear correlation. The points have no overall tendency to move linear and their movement in general looks chaotic. This is a quite interesting result: on a global averaged scale a moderate correlation between temperature increase and wildfires exists while when looking at all the individual values of the countries, this does not seem to be the case.
 
 ## Prediction of where and when wildfires are likely to occur
 
@@ -1170,7 +1144,7 @@ temp <- temperature_data %>%
   select(Area, Year, Value) %>% 
   rename(name = Area, year = Year, temp_increase = Value)
 
-# Interpretation of NA's as No Wild Fire, because of the structur of the entries for this column
+# Interpretation of NA's as No Wild Fire, because of the structure of the entries for this column
 fra <- fra_data %>% 
   mutate(wildfire = case_when(
     Fire == 0 ~ "No",
@@ -1182,8 +1156,9 @@ fra_tc_data <- inner_join(fra, temp, by=c("name", "year"))
 fra_tc_data
 ```
 Based on the columns in the table above, we will try to predict if a wildfire occurs or not. So we will use the location, year, forest composition, destruction information and temperature increase.
+"Wildfire" is the target we want to predict and has either the value "No", if we don't have any data or the value of wildfires is 0, and "Yes" otherwise. So we have a binary classification task.
 
-We got roughly 3800 samples for the prediction
+We got roughly 3800 samples for the prediction. We use 5-fold cross validation and a train / test split of 3/4 to train our model.
 
 ```{r prepare_data}
 set.seed(123)
@@ -1209,6 +1184,8 @@ dt_model_spec <- decision_tree() %>%
   set_mode("classification")
 ```
 
+First we compare a logistic regression model with a decision tree model on our 5-fold validation sets.
+
 ```{r model_validation}
 # Fit models on cv training data
 wf <- workflow() %>%
@@ -1224,14 +1201,21 @@ wf <- wf %>% update_model(dt_model_spec)
 dt_results_1 <- wf %>% 
   fit_resamples(wf_cv) %>% 
   collect_metrics()
-
-lr_results_1
-dt_results_1
-
-# Decision Tree has a better performance
 ```
 
-```{r model_validation_2}
+*Logistic regression:*
+```{r}
+lr_results_1
+```
+
+*Decision tree:*
+```{r}
+dt_results_1
+```
+
+Even though the Decision Tree has a slightly worse performance, we move on using a decision tree model because of its intuitive visualization and interpretation. 
+
+```{r model_validation_2, message=FALSE, warning=FALSE}
 # Next step: find optimal formula
 
 wf <- wf %>% update_formula(wildfire ~ name + continent + temp_increase + boreal + temperate+ tropical+ subtropical + Insects + Diseases + Weather + Others + year
@@ -1243,6 +1227,7 @@ dt_results_2 <- wf %>%
 
 dt_results_2
 ```
+As shown above we got a very promising performance for our cross validation data when using all predictor variables. We now test the model on the test set.
 
 ```{r model_evaluation}
 dt_fit <- fit(dt_model_spec, wildfire ~ name + continent + temp_increase + boreal + temperate+ tropical+ subtropical + Insects + Diseases + Weather + Others + year, wf_training)
@@ -1251,19 +1236,9 @@ rpart.plot::rpart.plot(dt_fit$fit, roundint = FALSE)
 predict(dt_fit, new_data = wf_testing) %>%
   mutate(truth = wf_testing$wildfire) %>%
   accuracy(estimate = .pred_class, truth = truth)
-
-# prediction of when a wildfire occurs sees to be impractical because the most / only important factor is the country
-# remove year - doesn't make any sence to use it predict upcoming wildfires
-
-#predict(fit, new_data = wf_testing) %>%
-# mutate(truth = wf_testing$wildfire) %>%
-#accuracy(estimate = .pred_class, truth = truth)
-
-#predict(fit2, new_data = wf_testing) %>%
-# mutate(truth = wf_testing$wildfire) %>%
-#accuracy(estimate = .pred_class, truth = truth)
-#rpart.plot::rpart.plot(results4$)
 ```
+
+We again got a very high accuracy with about 92%, however, when looking at our decision tree, the prediction of when a wildfire occurs seems to be impractical because the most / only important factor is the country. Therefore we will remove the country information from our model, to see if we can find any underlying patters of wildfires. We also removed the year since it doesn't make any sense to use it when predicting upcoming wildfires.
 
 ```{r}
 dt_fit <- fit(dt_model_spec, wildfire ~ temp_increase + boreal + temperate + tropical+ subtropical + Insects + Diseases + Weather + Others + year, wf_training)
@@ -1273,7 +1248,9 @@ predict(dt_fit, new_data = wf_testing) %>%
   mutate(truth = wf_testing$wildfire) %>%
   accuracy(estimate = .pred_class, truth = truth)
 ```
+Even though the accuracy decreased by almost 20%, the decision tree looks more promising. 
 
+To sum up the results:
 Our most accurate prediction depends only on the given country and is therefore not very useful in finding the underlying source of wildfires, even though it has a accuracy 92%. If we remove the country as a predictor, the main factors for deciding whether a wildfire occurs or not are the type of forests in a given country and the the amount of destroyed forest by insects. Both of these values don't need to be very high to result in a 70% chance of a wildfire in a given country.
 
 # Relation to other environmental issues
@@ -1284,7 +1261,7 @@ In this section, we would like to address some of the aspects that are relevant 
 
 We start with with an overview over the air pollution, the plot below shows the top 10 polluters with the global average. The list is relatively evenly distributed between countries with large and small forest areas, in relation to their total area.
 
-```{r Air-Pollution-plot, echo=FALSE}
+```{r Air-Pollution-plot, echo=FALSE, message=FALSE}
 AirPollution %>% 
   drop_na() %>% 
   group_by(Country) %>% 
@@ -1300,7 +1277,7 @@ AirPollution %>%
     x = expression(paste("Average air pollution [", mu, "g/", m^3, "]")),
     y = "Country",
     title = "Top 10 countries with the highest air pollution",
-    subtitle = "Time period: 1990 - 2020"
+    subtitle = "Time period: 1990 - 2019"
   )+
   scale_x_continuous(labels = scales::comma) +
   theme_minimal()+
@@ -1312,7 +1289,6 @@ AirPollution %>%
 
 India has the highest air pollution in the last 30 years, that's why we take a closer look on India's air pollution figures compared to the global figures.
 
-**Air pollution trend in India**
 ```{r India-plot, echo=FALSE}
 
 AirPollution_India <- AirPollution %>% 
@@ -1320,14 +1296,22 @@ AirPollution_India <- AirPollution %>%
   filter(Country == "India") %>% 
   summarize(AirPollution = mean(AirPollution)) %>% 
   ungroup() 
-  
+
+pollution_global <- AirPollution %>% 
+  group_by(Country,Year) %>% 
+  drop_na() %>% 
+  group_by(Year) %>% 
+  summarise(Country = "Other Countries",
+    AirPollution = mean(AirPollution))
 
 
 AirPollution_India_plot <- AirPollution_India %>% 
   ggplot(aes(x = Year, y = AirPollution))+
   geom_point(color =  "#79198a", size = 3, alpha = 0.6)+
   geom_line(size = 1, alpha = 0.6)+
-  labs(title = "Air Pollution in India",
+  geom_point(aes(x = pollution_global$Year,  y = pollution_global$AirPollution), color =  "#22228a", size = 3, alpha = 0.6)+
+  geom_line(aes(x = pollution_global$Year,  y = pollution_global$AirPollution), size = 1, alpha = 0.6)+
+  labs(title = "Air pollution trends in India",
        subtitle = "Time period: 1990-2019",
        x = "Year",
        y = expression(paste("Air pollution [", mu, "g/", m^3, "]")))+
@@ -1337,40 +1321,36 @@ AirPollution_India_plot <- AirPollution_India %>%
 
 AirPollution_India_plot
 ```
-Findings:
-* Air Pollution drastically increased after the year 2005.
-* It was highest in 2012.
-* It decreased in 2005 by ~10 Micrograms per cubic metre.
-* Sudden decrease around 2017.
-* Increased slightly in 2019 again
 
-```{r air-pollution-rest, echo=FALSE}
+The air pollution drastically increased after the year 2005, reaching its peak in 2014. After 2017 the air pollution decreased again and stagnated around a value of 83 $\mu g/m^3$. Compared to the global average India has immense air pollution levels throughout the years. Globally the air pollution stays more or less the same or even slightly decreases.
+
+```{r air-pollution-rest, echo=FALSE, warning=FALSE, message=FALSE}
 
 AirPollution_India <- AirPollution %>% 
   group_by(Year) %>% 
   filter(Country == "India") %>% 
   summarize(Country = "India", AirPollution = mean(AirPollution)) %>% 
-  ungroup() 
-
+  ungroup()
+  
 pollution_rest <- AirPollution %>% 
+  group_by(Country,Year) %>% 
   drop_na() %>% 
   filter(Country != "India") %>% 
   summarise(Country = "Other Countries",
     AirPollution = mean(AirPollution))
-  
 
 trend <- bind_rows(AirPollution_India, pollution_rest) %>% mutate(Country = factor(Country))
 
 trend_plot <- plot_ly(trend, x = ~AirPollution, y = ~factor(Country)) %>%
   add_boxplot(color = ~Country) %>%
-  layout(title = "Air Pollution in India and the rest of the World (1990-2020)",
-         yaxis = list(title = "") , xaxis = list(title = expression(paste("Air pollution [", mu, "g/", m^3, "]"))))
+  layout(title = "Air pollution in India and the rest of the World (1990-2020)",
+         yaxis = list(title = "") , xaxis = list(title = "Air pollution"))
   
 div(trend_plot, align = "right")
 
 ```
 
-We notice that India's Air pollution range lies between 65.3201 $\mu g/m^3$ (least) and ~95.8366 $\mu g/m^3$ (highest), while the range of  average air pollution for other countries lies between 5.1633 $\mu g/m^3$ and 66.9532 $\mu g/m^3$. However, a lot of outliers in the global average can be found, showing that a lot of countries have air pollution ranging above the maximum average value.
+We notice that India's air pollution range lies between 65 $\mu g/m^3$ (least) and 95 $\mu g/m^3$ (highest), while the range of  average air pollution for other countries lies between 5 $\mu g/m^3$ and 66 $\mu g/m^3$. However, a lot of outliers in the global average can be found, showing that a lot of countries have air pollution ranging above the maximum average value.
 
 ```{r merged-data-set, include=FALSE}
 mergedData <- merge(forest_countries, AirPollution, by=c("Country","Year")) %>%
@@ -1388,7 +1368,7 @@ mergedData
 mergedData %>% 
   ggplot(aes(x = TotalForestArea, y = TotalAirPollution)) +
   geom_point(size = 4, alpha=0.7, color = "#056b5f") +
-  labs(x="Total Forest Area [1000 ha]", y = "Total Air Pollution", title="Correlation between Forest Area and Air Pollution (globally)") + 
+  labs(x="Total forest area [1000 ha]", y = "Total air pollution", title="Correlation between forest area and air pollution (globally)") + 
   geom_smooth(method = 'lm')+
   ggrepel::geom_text_repel(
     aes(label = Year), 
@@ -1410,22 +1390,20 @@ The results above indicate that there is no correlation between Forest Area and 
 For a further verification of the relationship between Forest Area and Air Pollution, we also use the Predictive Power Score.
 
 ```{r regression, echo=FALSE}
-# merge  data sets and remove missing values
-
 data <- merge(forest_countries,AirPollution,by=c("Country","Year")) %>%
   drop_na() %>% 
   select(c("Country","Year","ForestArea","AirPollution"))
  
 ```
 
-```{r air-pollution, echo=FALSE}
+```{r air-pollution, echo=FALSE, warning=FALSE}
 pps1 <- score_df(data %>% 
                    group_by(Year) %>% 
                    summarise(AirPollution = sum(AirPollution, na.rm = TRUE), 
                              ForestArea = sum(ForestArea)) %>% ungroup() %>% 
                    select(AirPollution, ForestArea))
 
-pps1
+pps1 %>% filter(result_type == "predictive power score")
 ```
 
 The Predictive Power Score of 0 also shows no relationship between forest area and air pollution.
@@ -1677,11 +1655,9 @@ linear_reg() %>%
  set_engine("lm") %>%
  fit(formula = totalCarbonAbsorbed ~ totalArea, data = data) %>%
  tidy()
-
-# TODO: Check these results again on Patricks code
 ```
 
-Using linear regression we come to the conclusion, that for a 1000 ha increase in total forest area, the volume of carbon absorbed will increase by 0.0024 MtCO2, given that all other variables being constant. Or differently expressed it would lead to a decrease of CO2 by 0.0024 Mt.
+Using linear regression we come to the conclusion, that for a 1000 ha increase in total forest area, the volume of carbon absorbed will increase by 0.0025 MtCO2, given that all other variables being constant. Or differently expressed it would lead to a decrease of CO2 by 0.0025 Mt.
 
 ## Required forest area for current CO2 emissions
 
@@ -1712,7 +1688,7 @@ ghg_pre<-gh1 %>% rowwise() %>% mutate(new_area=as.numeric(predic_2021(name))/2.5
 
 div(
   plot_ly(ghg_pre, type='choropleth', locations=ghg_pre$code, z=ghg_pre$new_area, text=ghg_pre$name, colors="Purples", marker = list(line = l)) %>% colorbar(title = "Forest Area <br />Required [1000 ha]") %>% layout(
-    title = 'New forest area required <br />to componsate present emission',
+    title = 'New forest area required to compensate present emissions',
     geo = g
   ), align = "right")
 ```
@@ -1722,7 +1698,7 @@ div(
 Final Analysis
 The bottom line on what we've learned from our data is, that forests change incredibly fast. Even in our given time range from the last 30 years we gained many fascinating findings. In general we answered the questions with exploratory data analyses, regression models and correlation. To justify our results, we tried to have a view on our data from at least two sides. In these cases, we were thus able to reinforce a previous result with a further calculation or even visualization (e.g. continental and country-wise results).
 
-Starting with the forest area trends we detected that there are huge differences between countries and even continents when it comes to the development of forest area. While the Americas (in particular South America) and Africa faced a decrease Asian countries could slightly increase the forest area. Main reason for that was the extensive deforestation in Brazil with 19% while China recorded a way higher number in forest area 2020 than in 1990. The forest trend in Europe in the last 30 years is stable, it is even slightly upwards. A new perspective on the world is providing our map with the deforestation analysis. It shows the loss of forests in the past 30 years and furthermore the years until the forests are completely lost, if a country keeps on deforesting with the same pace. However, the numbers should be seen with the understanding that the amount deforestation is declining on almost every continent. For example countries in Americas deforested between 2000-2010 around 7 billion ha, the figure declined between 2010-2020 to 3,1 billion ha. When trying to put the deforestation results into relation with the reforestation we found a moderate correlation, showing that deforestation has actually an impact on reforestation. One could argue that at least some countries want to „make up“ for their human-driven deforestation. Interesting would be also to put the reforestation numbers into relation to other forest destruction causes, to show which countries are willing to tackle climate change. When it comes to natural forest destruction we figured out that wildfires are with 50% share clearly the dominant cause, however it varies between countries, e.g. in Germany is the main cause of forest destruction insects, in Brazil fires. We have to mention here, that our dataset does not distinguish between natural caused and human-driven fires. Based on recent articles and that Brazil is located in a tropical zone, we can assume that it is a human-driven deforestation. That is also one reason why our prediction of when and where wildfires are likely to occur is quite tough to answer. A more precise dataset, distinguishing between the causes of fire is missing. Finally we investigated in another large subject area, forests and the relation to other environmental issues. We were able to calculate the decrease in CO2 (0.0025 MtCO2) if forest area is increased by 1000 ha and furthermore we were able to determine how much forest area each country would have to plant, to be able to absorb their C02 emissions.
+Starting with the forest area trends we detected that there are huge differences between countries and even continents when it comes to the development of forest area. While the Americas (in particular South America) and Africa faced a decrease Asian countries could slightly increase the forest area. Main reason for that was the extensive deforestation in Brazil with 19% while China recorded a way higher number in forest area 2020 than in 1990. The forest trend in Europe in the last 30 years is stable, it is even slightly upwards. A new perspective on the world is providing our map with the deforestation analysis. It shows the loss of forests in the past 30 years and furthermore the years until the forests are completely lost, if a country keeps on deforesting with the same pace. However, the numbers should be seen with the understanding that the amount deforestation is declining on almost every continent. For example countries in Americas deforested between 2000-2010 around 70 million ha, the figure declined between 2010-2020 to 31 million ha. When trying to put the deforestation results into relation with the reforestation we found a moderate correlation, showing that deforestation has actually an impact on reforestation. One could argue that at least some countries want to „make up“ for their human-driven deforestation. Interesting would be also to put the reforestation numbers into relation to other forest destruction causes, to show which countries are willing to tackle climate change. When it comes to natural forest destruction we figured out that wildfires are with 50% share clearly the dominant cause, however it varies between countries, e.g. in Germany is the main cause of forest destruction insects, in Brazil fires. We have to mention here, that our dataset does not distinguish between natural caused and human-driven fires. Based on recent articles and that Brazil is located in a tropical zone, we can assume that it is a human-driven deforestation. That is also one reason why our prediction of when and where wildfires are likely to occur is quite tough to answer. A more precise dataset, distinguishing between the causes of fire is missing. Finally we investigated in another large subject area, forests and the relation to other environmental issues. We were able to calculate the decrease in CO2 (0.0025 MtCO2) if forest area is increased by 1000 ha and furthermore we were able to determine how much forest area each country would have to plant, to be able to absorb their C02 emissions.
 
 Since articles and papers deal very specifically with the individual topics around forests, we wanted to give an overview or a summary with our own data and calculations about the most important issues from the beginning of our project. We are aware that we could not cover everything and would have liked to answer many more questions that came to our mind before or during the project. However, we noticed that this would have been beyond the scope of our project. A look into the future is also intriguing. Besides to observe whether current positive or negative trends are holding on, with more years of collecting data, it would open completely new possibilities to answer further questions and make even more precise predictions.
 
