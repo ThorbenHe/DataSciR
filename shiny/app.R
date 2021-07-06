@@ -769,7 +769,7 @@ destruction_cause<-"Again we can see the huge impact of wildfires. On a global s
 
 destruction_cause_1<-"In Germany insects and diseases are the main drivers of forest destruction, destroying approximately 2.5 Million ha of forest over this 18 years time period. However, wildfires are no significant problem at all in Germany."
 
-countires_affected<-"As one would expect from our previous findings, the most affected countries mostly struggle with wildfires. The only exceptions to this are the USA, Canada, China, Sudan and Mexico. Brazil is the most affected country and has a huge wildfire problem. However, since Brazil is a tropical region and therefore very humid these wildfires are most likely caused by humans (ONLINE 2021)"
+countires_affected<-"As one would expect from our previous findings, the most affected countries mostly struggle with wildfires. The only exceptions to this are the USA, Canada, China, Sudan and Mexico. Brazil is the most affected country and has a huge wildfire problem. However, since Brazil is a tropical region and therefore very humid these wildfires are most likely caused by humans (ZEIT 2021)"
 
 wildfires<-"Our first visualization doesn’t suggest any linear correlation, but it can be improved to make the interpretation clearer. Again, the temperature increase given in this dataset is in relation to a baseline temperature which corresponds to the period of 1951–1980."
 
@@ -872,8 +872,9 @@ ui <- fluidPage(theme = shinytheme("yeti"),
                     )#navlistPanel
                     ),
                     #---------------------------------------
-                    tabPanel("Reforestation",navlistPanel(tabPanel("Forest Increase",tags$p("By hovering over the following map, a tooltip of the reforestation increase for each country is shown. The greener the country, the higher is the increase."),tags$br(),plotlyOutput(outputId = "plot_Forest_Increase")),
-                                                          tabPanel("Main drivers of reforestation",plotOutput(outputId = "plot_Driver_ref"),tags$p("As these results show mainly countries with a huge surface, we want to put the increase of reforestation from 1990-2020 in relation to the forest area in 1990."),plotOutput(outputId = "plot_Driver_ref_1"),tags$p(reforestation))
+                    tabPanel("Reforestation",navlistPanel(tabPanel("Forest Increase",tags$p("By hovering over the following map, a tooltip of the reforestation increase for each country is shown. The greener the country, the higher is the increase.", style="margin-top: 16px;
+"),tags$br(),plotlyOutput(outputId = "plot_Forest_Increase")),
+                                                          tabPanel("Main drivers of reforestation", tags$p("These are the main drivers of reforestation:", style="margin-top: 16px;"), plotOutput(outputId = "plot_Driver_ref"),tags$p("As these results show mainly countries with a huge surface, we want to put the increase of reforestation from 1990-2020 in relation to the forest area in 1990."),plotOutput(outputId = "plot_Driver_ref_1"),tags$p(reforestation))
                                                           
                                                           
                     )#navlistPanel
@@ -883,14 +884,14 @@ ui <- fluidPage(theme = shinytheme("yeti"),
                     tabPanel("Deforestation",
                              navlistPanel(tabPanel("Forest prediction",tags$h1("Main drivers of deforestation and forest prediction"),tags$p(drivers_deforestation_1),tags$br(),tags$p(drivers_deforestation_2),plotlyOutput(outputId = "plot")),
                                           tabPanel("Forest for Co2 Emission",tags$h1("Required forests for Current Co2 emmission"),tags$p(required_forest),plotlyOutput(outputId = "plot1")),
-                                          tabPanel("Years until forest is lost",tags$p(Forest_lost),plotlyOutput(outputId = "plot_Forest_lost"),plotlyOutput(outputId = "plot_Forest_lost_1"),tags$p(Forest_lost_1))
+                                          tabPanel("Years until forest is lost",tags$p(Forest_lost, style="margin-top: 16px;"),plotlyOutput(outputId = "plot_Forest_lost"),plotlyOutput(outputId = "plot_Forest_lost_1"),tags$p(Forest_lost_1))
                              )),
                     #-------------------------------------------
                     
                     tabPanel("Reforestation Vs Deforestation",
                              navlistPanel(tabPanel("Relation",tags$h1("Relation between reforestation and deforestation"),tags$p(ref_def_1),tags$br(),tags$p(ref_def_2),plotOutput(outputId = "plot_ref_def_1"),tags$p(ref_def_3),tags$br(),tags$p(ref_def_4),plotOutput(outputId = "plot_ref_def_2"),tags$p(ref_def_4a),tags$p(ref_def_4b),tags$p(ref_def_4c),tags$p("Spearman =  0.540645228525197"),tags$p(ref_def_4d),tags$p("However this value is with 0.14 not as high as expected after the correlation result.")),
-                                          tabPanel("Trends by Continent",tabsetPanel(tabPanel("Reforestation",tags$p(ref_def_5),plotOutput(outputId = "plot_ref_def_4")),
-                                                                                     tabPanel("Deforestation",tags$p(ref_def_6),plotOutput(outputId = "plot_ref_def_3"),tags$p(ref_def_7))
+                                          tabPanel("Trends by Continent",tabsetPanel(tabPanel("Reforestation",tags$p(ref_def_5, style="margin-top: 16px;"),plotOutput(outputId = "plot_ref_def_4")),
+                                                                                     tabPanel("Deforestation",tags$p(ref_def_6, style="margin-top: 16px;"),plotOutput(outputId = "plot_ref_def_3"),tags$p(ref_def_7))
                                                                                      
                                           )#tabsetPanel
                                           )
@@ -901,14 +902,14 @@ ui <- fluidPage(theme = shinytheme("yeti"),
                     #---------------------------------    
                     tabPanel("Forest Destruction", 
                              navlistPanel(tabPanel("Destruction yearly with cause ",tabsetPanel(tabPanel("Global visual",tags$h1("Main causes of forest destruction"),tags$p(destruction),plotOutput(outputId = "plot1_1")),
-                                                                                                tabPanel("Regional visual",tags$p("Note: the peak in the plot about Germany was caused by the heat wave in 2003."),selectInput(inputId = "Country_1",label = "Select country to plot",choices = unique(fra_data$name),selected = "Germany"),plotOutput(outputId = "plot_t1")) 
+                                                                                                tabPanel("Regional visual",tags$p("Note: the peak in the plot about Germany was quite likely caused by the heat wave in 2003 (Gunkel 2013).", style="margin-top: 16px;"),selectInput(inputId = "Country_1",label = "Select country to plot",choices = unique(fra_data$name),selected = "Germany"),plotOutput(outputId = "plot_t1")) 
                              )),
                              
                              tabPanel("Destruction Causes",tabsetPanel(tabPanel("Global visual",tags$h1("Destroyed forest by cause"),tags$p(destruction_cause),plotOutput(outputId = "plot1_2")),
-                                                                       tabPanel("Regional visual",tags$p(destruction_cause_1),selectInput(inputId = "Country_2",label = "Select country to plot",choices = unique(fra_data$name),selected = "Germany"),plotOutput(outputId = "plot_t2")) 
+                                                                       tabPanel("Regional visual",tags$p(destruction_cause_1, style="margin-top: 16px;"),selectInput(inputId = "Country_2",label = "Select country to plot",choices = unique(fra_data$name),selected = "Germany"),plotOutput(outputId = "plot_t2")) 
                              )),
                              tabPanel("Countries Affected",tabsetPanel(tabPanel("Global visual",tags$h1("Most affected countries"),tags$p(countires_affected),plotOutput(outputId = "plot1_3")),
-                                                                       tabPanel("Continent visual",tags$p("For Europe one can see that except for Russia, Europe’s most affected countries have no problem with wildfires."),selectInput(inputId = "continent",label = "Select continent to plot",choices = c( "Americas", "Asia", "Africa", "Europe", "Oceania", "Global"),selected = "Europe"), 
+                                                                       tabPanel("Continent visual",tags$p("For Europe one can see that except for Russia, Europe’s most affected countries have no problem with wildfires.", style="margin-top: 16px;"),selectInput(inputId = "continent",label = "Select continent to plot",choices = c( "Americas", "Asia", "Africa", "Europe", "Oceania", "Global"),selected = "Europe"), 
                                                                                 selectInput(inputId = "number",label = "Select number of countries to plot",choices = c(5, 10, 15), selected = 5), 
                                                                                 selectInput(inputId = "cause",label = "Select cause to plot",choices = c("Insects", "Diseases", "Weather", "Others", "Fire", "All"), selected = "All"), plotOutput(outputId = "plot_t3"))))
                              
@@ -947,7 +948,7 @@ ui <- fluidPage(theme = shinytheme("yeti"),
                     tabPanel("Final Analysis",tags$p(final_analysis_1, style="margin-top: 16px;"),tags$p(final_analysis_2),tags$p(final_analysis_3)),
                     #------------------------------------
                     tabPanel("Ressources",navlistPanel(
-                        tabPanel("Source code & Process notebook", tags$a(tags$img(src="git.png"), href="https://github.com/ThorbenHe/DataSciR")),
+                        tabPanel("Source code & Process notebook", tags$a(tags$img(src="git.png"), href="https://github.com/ThorbenHe/DataSciR"), style="margin-top: 16px;"),
                         tabPanel("Data and References",tags$a("Climate Watch, CAIT data: 2020. “GHG Emissions.” Washington, DC: World Resources Institute. 2020.",href="https://www.climatewatchdata.org/ghg-emissions"),tags$br(),
                                  tags$a("FAO. 2020a. “Global Forest Resources Assessment 2020.” 2020.",href="https://fra-data.fao.org/WO/fra2020/home/"),tags$br(),
                                  tags$a("2020b. “Global Forest Resources Assessment 2020: Main Report.” Rome: FAO.",href="https://doi.org/10.4060/ca9825en"),tags$br(),
@@ -961,7 +962,7 @@ ui <- fluidPage(theme = shinytheme("yeti"),
                                  tags$a("ONLINE, ZEIT. 2021. “Abholzung Im Amazonasgebiet Steigt Auf Neuen höchststand.” ZEIT ONLINE.",href="https://www.zeit.de/wissen/umwelt/2021-06/brasilien-abholzung-amazonasgebiet-regenwald-mai-hoechststand"),tags$br(),
                                  tags$p("Ritchie, Hannah, and Max Roser. 2021. “Forests and Deforestation.” Our World in Data."),
                                  tags$a("UN, Economic Commission for Europe. 2019. “10 Facts to Fall in Love with Forests.” Unece.org.",href="https://unece.org/forestry/news/10-facts-fall-love-forests#:~:text=1")
-                        )
+                                 , style="margin-top: 16px;")
                     )#navlistPanel
                     )#Ressources
                     #------------------------------------  
