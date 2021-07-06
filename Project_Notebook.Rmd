@@ -53,7 +53,7 @@ options(scipen=999)
 # Overview & Motivation
 
 The existence of forests is essential for our life on Earth. By covering around 31 percent of the world’s total land area, forests provide a retreat and home to over 80 percent of land animals and countless partially even undiscovered plants. One can say that forests are the backbone of entire ecosystems. A significant part of the oxygen we breathe is provided by the trees, while they also absorb about 25 percent of greenhouse gases. Also economically we are dependent on forests as the livelihoods of about 1.6 billion people around the world are directly or indirectly connected to forests. Furthermore, forests provide 40 percent of today's global renewable energy supply, as much as solar, hydroelectric and wind power combined.
-Despite these utilities, forestation across the world has faced several challenges ranging from wildfires, human-driven deforestation, poor management and poor conversation in general. However, a loss of whole forests would mean severe consequences to humanity and life on Earth.  
+Despite these utilities, forestation across the world has faced several challenges ranging from wildfires, human-driven deforestation, poor management and poor conservation in general. However, a loss of whole forests would mean severe consequences to humanity and life on Earth.  
 
 With this project we seek to answer important questions that address these challenges. We want to figure out the causes of destruction of forests, highlight their importance to our environment and predict trends around reforestation/deforestation. Moreover, we hope to show how we can tackle climate change by reforestation, in particular, how an increase in forest area will help to increase the buffer of sustainability.
 For the statistics so far, see our reference [@unece2019].
@@ -452,7 +452,7 @@ top_data %>%
   theme(legend.position = "none") +
   labs(
     x = "Forest area [1000 ha]",
-    y = "Country",
+    y = NULL,
     title = "Top 10 countries with the largest forest area",
     subtitle = "In the year 2020"
   )+
@@ -518,7 +518,7 @@ defTop <- def_30 %>%
   head(20)
 
 div(plot_ly(defTop,  type="bar", x=defTop$year, y = fct_rev(fct_inorder(defTop$name))) %>% layout(
-  title = 'Years until forest area is lost based on deforestation',xaxis = list(title = 'Years'),yaxis = list(title = 'Countries')
+  title = 'Years until forest area is lost based on deforestation',xaxis = list(title = 'Years')
 ), align = "right")
 ```
 
@@ -529,7 +529,7 @@ defBot <- def_30 %>%
   arrange(year)
 
 div(plot_ly(defBot, type="bar", x=defBot$year, y = fct_rev(fct_inorder(defBot$name)), color = "red") %>% layout(
-  title = 'Years until forest area is lost based on deforestation',xaxis = list(title = 'Years'),yaxis = list(title = 'Countries')
+  title = 'Years until forest area is lost based on deforestation',xaxis = list(title = 'Years')
 ), align = "right")
 ```
 
@@ -936,7 +936,7 @@ plot_highest_forest_destruction <- function(cont = 'Global', number = 15, cs = '
     labs(title = glue::glue("The {number} countries with the highest forest destruction"),
          subtitle = glue::glue("Region: {cont} - Time period: 2000 - 2017"),
          x = "Forest area [1000 ha]",
-         y = "Country",
+         y = NULL,
          fill = "Cause") +
     theme_minimal()
   
@@ -1130,7 +1130,7 @@ p <- fra_tc_local %>%
 animate(p, renderer = gifski_renderer())
 ```
 
-When we look at a the values for all the countries and also sort them continent-wise, there seems to be no clear correlation. The points have no overall tendency to move linear and their movement in general looks chaotic. This is a quite interesting result: on a global averaged scale a moderate correlation between temperature increase and wildfires exists while when looking at all the individual values of the countries, this does not seem to be the case.
+When analyzing the values for all the countries and also sorting them continent-wise, there seems to be no clear correlation. The points have no overall tendency to move linear and their movement in general looks chaotic. This is a quite interesting result: on a global averaged scale a moderate correlation between temperature increase and wildfires exists while when looking at all the individual values of the countries, this does not seem to be the case.
 
 ## Prediction of where and when wildfires are likely to occur
 
@@ -1155,9 +1155,9 @@ fra_tc_data <- inner_join(fra, temp, by=c("name", "year"))
 fra_tc_data
 ```
 Based on the columns in the table above, we will try to predict if a wildfire occurs or not. So we will use the location, year, forest composition, destruction information and temperature increase.
-"Wildfire" is the target we want to predict and has either the value "No", if we have a missing value or the value of wildfires is 0, and "Yes" otherwise. So we have a binary classification task.
+"Wildfire" is the target we want to predict and has the value _No_, if we have a missing value or the value of wildfires is 0. Otherwise it has the value _Yes_. So we have a binary classification task.
 
-We got roughly 3800 samples for the prediction. We use 5-fold cross validation and a train/test split of 3/4 to train our model.
+We got roughly 3800 samples for the prediction. We use 5-fold cross validation and a train/test split of 3/4 to train our model. As a model we will use a decision tree because of its intuitive visualization and interpretation. First we take a look at the validation performance when using all predictor variables with this model.
 
 ```{r prepare_data}
 set.seed(123)
@@ -1172,47 +1172,22 @@ wf_cv <- vfold_cv(wf_training, v = 5)
 ```
 
 ```{r model_specs}
-# Logistic regression
-lr_model_spec <- logistic_reg() %>%
-  set_engine("glm") %>%
-  set_mode("classification")
-
 # Decision Tree
 dt_model_spec <- decision_tree() %>% 
   set_engine("rpart") %>% 
   set_mode("classification")
 ```
 
-First we compare a logistic regression model with a decision tree model on our 5-fold validation sets.
-
-```{r model_validation}
+```{r model_validation, include=FALSE}
 # Fit models on cv training data
 wf <- workflow() %>%
   add_formula(wildfire ~ temp_increase) %>% 
-  add_model(lr_model_spec)
-
-lr_results_1 <- wf %>% 
-  fit_resamples(wf_cv) %>% 
-  collect_metrics()
-
-wf <- wf %>% update_model(dt_model_spec)
+  add_model(dt_model_spec)
 
 dt_results_1 <- wf %>% 
   fit_resamples(wf_cv) %>% 
   collect_metrics()
 ```
-
-*Logistic regression:*
-```{r}
-lr_results_1
-```
-
-*Decision tree:*
-```{r}
-dt_results_1
-```
-
-Even though the decision tree has a slightly worse performance, we move on using a decision tree model because of its intuitive visualization and interpretation. Now that we have our machine learning algorithm selected, we take a look at the validation performance when using all predictor variables with this model.
 
 ```{r model_validation_2, message=FALSE, warning=FALSE}
 # Next step: find optimal formula
@@ -1229,20 +1204,22 @@ dt_results_2
 As shown above we got a very promising performance for our cross validation data when using all predictor variables. We now test the model on the test set.
 
 **Decision tree 1 (learned with all predictors):**
-```{r model_evaluation}
+```{r dt1}
 dt_fit <- fit(dt_model_spec, wildfire ~ name + continent + temp_increase + boreal + temperate+ tropical+ subtropical + Insects + Diseases + Weather + Others + year, wf_training)
 rpart.plot::rpart.plot(dt_fit$fit, roundint = FALSE)
 
 dt_fit$fit
+```
 
+Note: we have too many countries to be properly visualized in the decision tree above. Below the tree you can find the textual representation of it where you can look at all the countries and the decision they belong to.
+
+```{r model_evaluation}
 predict(dt_fit, new_data = wf_testing) %>%
   mutate(truth = wf_testing$wildfire) %>%
   accuracy(estimate = .pred_class, truth = truth)
 ```
 
 We again got a very high accuracy with about 92%, however, when looking at our decision tree, the prediction of when a wildfire occurs seems to be impractical because the most / only important factor is the country. Therefore we will remove the country information from our model, to see if we can find any underlying patters besides the country.
-
-Note: we have to many countries to be properly visualized in the decision tree above. Below the tree you can find the textual representation of it where you can look at all the countries and the decision they belong to.
 
 **Decision tree 2 (learned without country information):**
 ```{r}
@@ -1282,7 +1259,7 @@ AirPollution %>%
   theme(legend.position = "none") +
   labs(
     x = expression(paste("Average air pollution [", mu, "g/", m^3, "]")),
-    y = "Country",
+    y = NULL,
     title = "Top 10 countries with the highest air pollution",
     subtitle = "Time period: 1990 - 2019"
   )+
@@ -1501,7 +1478,7 @@ emissionData%>%
   ggplot(aes(x=avgEmission, y=reorder(country, avgEmission))) + 
   geom_col(fill="red") + 
   labs(title='Top 20 emitters of GreenHouse gases (1990 - 2018)',
-                                 x = 'Average Emissions [1000 tonnes]', y = 'Country')+
+                                 x = 'Average Emissions [1000 tonnes]', y = NULL)+
   theme(legend.position = "none")+
   scale_x_continuous(labels = scales::comma)
    
@@ -1602,7 +1579,7 @@ carbonStockData %>%
   summarise(avgCarbon = mean(carbonInTonnes))%>%
   arrange(desc(avgCarbon))%>%
   top_n(20)%>%
-  ggplot(aes(x=avgCarbon, y=reorder(country, avgCarbon))) + geom_col(fill='limegreen') + labs(title='Largest carbon stock in forests (1990 - 2020)', x = 'Average Carbon Stock [1000 tonnes]', y = 'Country') + scale_color_viridis_c(option = "inferno") + theme(legend.position = "none")+scale_x_continuous(labels = scales::comma)
+  ggplot(aes(x=avgCarbon, y=reorder(country, avgCarbon))) + geom_col(fill='limegreen') + labs(title='Largest carbon stock in forests (1990 - 2020)', x = 'Average Carbon Stock [1000 tonnes]', y = NULL) + scale_color_viridis_c(option = "inferno") + theme(legend.position = "none")+scale_x_continuous(labels = scales::comma)
   
 ```
 

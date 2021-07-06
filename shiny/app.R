@@ -118,6 +118,16 @@ fra_data <- fra_data_tmp %>%
     #rename_with(str_to_title) %>% 
     relocate(name, continent, year, Insects, Diseases, Weather, Others, Fire)
 
+temp_fra <- fra_data_tmp %>%
+    mutate(continent = countrycode(sourcevar = iso3, origin = "iso3c", destination = "continent"),
+           name = factor(name),
+           continent = factor(continent)) %>% 
+    select(name, continent, year, `5b_fire_forest`) %>% 
+    pivot_wider(names_from = year, values_from =  `5b_fire_forest`) %>% 
+    drop_na() %>% 
+    pivot_longer(cols = -c(name, continent), names_to = "year", values_to = "Fire") %>% 
+    mutate(year = as.double(year))
+
 temperature_data <- temperature_data_tmp %>% 
     filter(Year %in% 2000:2017,
            Flag == "Fc") %>% 
@@ -133,8 +143,9 @@ plot_yearly_forest_destruction_by_region <- function(region = 'Global') {
                   Weather = sum(Weather, na.rm = TRUE),
                   Others = sum(Others, na.rm = TRUE),
                   Fire = sum(Fire, na.rm = TRUE)) %>% 
-        pivot_longer(cols = c(Insects, Diseases, Weather, Others, Fire), names_to = "cause", values_to = "area") %>% 
-        ggplot(aes(x=year, y=area, fill=reorder(cause,area))) +
+        pivot_longer(cols = c(Insects, Diseases, Weather, Others, Fire), names_to = "cause", values_to = "area") %>%
+        mutate(cause = factor(cause)) %>% 
+        ggplot(aes(x=year, y=area, fill= cause %>% fct_reorder(area) %>% fct_relevel("Others", after = Inf))) +
         geom_area() +
         scale_x_continuous(breaks = c(2000, 2005, 2010, 2015, 2017)) +
         scale_y_continuous(labels = scales::comma) +
@@ -160,10 +171,11 @@ plot_total_forest_destruction_by_region <- function(region = 'Global') {
         mutate(Others = sum(Others, na.rm = TRUE)) %>% 
         mutate(Fire = sum(Fire, na.rm = TRUE)) %>% 
         pivot_longer(cols = c(Insects, Diseases, Weather, Others, Fire), names_to = "cause", values_to = "area") %>% 
+        mutate(cause = factor(cause)) %>% 
         slice(1:5) %>% 
         select(cause, area)
     
-    bar_plot <- ggplot(disturbance_data, aes(x = reorder(cause,desc(area)), y = area, fill = cause)) + 
+    bar_plot <- ggplot(disturbance_data, aes(x = cause %>% fct_reorder(desc(area)) %>% fct_relevel("Others", after = Inf), y = area, fill = cause)) + 
         geom_col() +
         labs(title = "Total forest destruction by cause",
              subtitle = glue::glue("Region: {region} - Time period: 2000 - 2017"),
@@ -175,7 +187,7 @@ plot_total_forest_destruction_by_region <- function(region = 'Global') {
         theme_minimal() +
         guides(fill = FALSE)
     
-    pie_plot <- ggplot(disturbance_data, aes(x="", y = area, fill = reorder(cause, desc(area)))) + 
+    pie_plot <- ggplot(disturbance_data, aes(x="", y = area, fill = cause %>% fct_reorder(desc(area)) %>% fct_relevel("Others", after = Inf))) + 
         geom_bar(stat="identity", width=1) +
         coord_polar("y") +
         scale_fill_manual(values = c(Weather = "#2b83ba", Others = "#ffffbf", Fire = "#d7191c",
@@ -191,7 +203,11 @@ plot_total_forest_destruction_by_region <- function(region = 'Global') {
 # function for countires effected 
 
 plot_highest_forest_destruction <- function(cont = 'Global', number = 15, cs = 'All') {
-    
+    num_text <- number
+    number <- as.integer(number)
+    if (cs != "All") {
+        number <- number / 5
+    }
     fra_data %>% 
         filter(continent == cont | cont == 'Global') %>% 
         select(name, c(Insects, Diseases, Weather, Others, Fire)) %>% 
@@ -209,15 +225,15 @@ plot_highest_forest_destruction <- function(cont = 'Global', number = 15, cs = '
         ungroup() %>% 
         arrange(desc(total)) %>% 
         slice(1:(5*number)) %>% 
-        ggplot(aes(x=area, y=reorder(name, area), fill=reorder(cause, desc(area)))) +
+        ggplot(aes(x=area, y=reorder(name, area), fill=reorder(cause, desc(area)) %>% fct_relevel("Others", after = Inf))) +
         geom_col() +
         scale_x_continuous(labels = scales::comma) +
         scale_fill_manual(values = c(Weather = "#2b83ba", Others = "#ffffbf", Fire = "#d7191c",
                                      Diseases = "#fdae61", Insects = "#abdda4")) + 
-        labs(title = glue::glue("The {number} Countries with the highest forest destruction"),
+        labs(title = glue::glue("The {num_text} Countries with the highest forest destruction"),
              subtitle = glue::glue("Region: {cont} - Time period: 2000 - 2017"),
              x = "Forest Area [1000 ha]",
-             y = "Country",
+             y = NULL,
              fill = "Cause") +
         theme_minimal()
     
@@ -233,7 +249,9 @@ global_yearly_tc <- temperature_data %>%
     select(Year, Value) %>% 
     rename(year = Year, temp_increase = Value)
 
-fra_tc_global <- inner_join(fra_data, global_yearly_tc, by=c("year"))
+global_yearly_tc
+
+fra_tc_global <- inner_join(temp_fra, global_yearly_tc, by=c("year"))
 
 local_yearly_tc <- temperature_data %>% 
     filter(Element == 'Temperature change', 
@@ -241,7 +259,7 @@ local_yearly_tc <- temperature_data %>%
     select(Area, Year, Value) %>% 
     rename(name = Area, year = Year, temp_increase = Value)
 
-fra_tc_local <- inner_join(fra_data, local_yearly_tc, by=c("name", "year"))
+fra_tc_local <- inner_join(temp_fra, local_yearly_tc, by=c("name", "year"))
 
 #-------------------from here new edit data
 
@@ -398,8 +416,8 @@ trends$year[trends$year=="2010-2020"]<-2
 trends_def<-trends %>% group_by(year,continent) %>% summarize(t_deforestation =sum(as.numeric(`1d_deforestation`),na.rm = TRUE),t_expansion=sum(as.numeric(`1d_expansion`),na.rm = TRUE),t_afforestation =sum(as.numeric(`1d_afforestation`),na.rm = TRUE),t_reforestation =sum(as.numeric(`1e_reforestation`),na.rm = TRUE),t_nat_exp =sum(as.numeric(`1d_nat_exp`),na.rm = TRUE)) %>% ungroup()
 
 #----------------------------------
-trends<- inner_join(world,intervals_1,by="name") %>% 
-    select(name,year,`1e_reforestation`)
+trends<- inner_join(world,reforestation,by="name") %>% 
+    select(name,year,sum)
 trends$continent <- countrycode(sourcevar = trends$name,
                                 origin = "country.name",
                                 destination = "continent")
@@ -411,7 +429,7 @@ trends$year[trends$year=="2000-2010"]<-1
 trends$year[trends$year=="2010-2020"]<-2
 
 trends_ref<-trends %>% 
-    group_by(year,continent) %>% summarize(t_reforestation =sum(as.numeric(`1e_reforestation`),na.rm = TRUE)) %>% ungroup()
+    group_by(year,continent) %>% summarize(t_reforestation =sum(sum,na.rm = TRUE)) %>% ungroup()
 #-------------------------------------------
 
 AirPollution <- tibble(read_csv("data/oecd_air_pollution_data.csv"))
@@ -507,7 +525,7 @@ emissionData_plot<-emissionData%>%
     ggplot(aes(x=avgEmission, y=reorder(country, avgEmission))) + 
     geom_col(fill="red") + 
     labs(title='Top 20 emitters of GreenHouse gases (1990 - 2018)',
-         x = 'Average Emissions [1000 tonnes]', y = 'Country')+
+         x = 'Average Emissions [1000 tonnes]', y = NULL)+
     theme(legend.position = "none")+
     scale_x_continuous(labels = scales::comma)
 
@@ -600,7 +618,7 @@ mergedData_3_plot<-carbonStockData %>%
     summarise(avgCarbon = mean(carbonInTonnes))%>%
     arrange(desc(avgCarbon))%>%
     top_n(20)%>%
-    ggplot(aes(x=avgCarbon, y=reorder(country, avgCarbon))) + geom_col(fill='limegreen') + labs(title='Largest carbon stock in forests (1990 - 2020)', x = 'Average Carbon Stock [1000 tonnes]', y = 'Country') + scale_color_viridis_c(option = "inferno") + theme(legend.position = "none")+scale_x_continuous(labels = scales::comma)
+    ggplot(aes(x=avgCarbon, y=reorder(country, avgCarbon))) + geom_col(fill='limegreen') + labs(title='Largest carbon stock in forests (1990 - 2020)', x = 'Average Carbon Stock [1000 tonnes]', y = NULL) + scale_color_viridis_c(option = "inferno") + theme(legend.position = "none")+scale_x_continuous(labels = scales::comma)
 
 mergedData_4_plot<-mergedData_1%>%
     ggplot(aes(x=emissionSum, y=carbonStockSum)) + geom_point(color="red") +
@@ -659,9 +677,78 @@ data_1 <- data_1 %>%
     complete(2)%>%
     group_by(Year)%>%summarise(totalArea = sum(Area), totalCarbonAbsorbed = sum(carbonStock))
 
+#--------------------------
+
+temp_tree <- temperature_data %>% 
+    filter(Element == 'Temperature change', 
+           Months == 'Meteorological year') %>% 
+    select(Area, Year, Value) %>% 
+    rename(name = Area, year = Year, temp_increase = Value)
+
+# Interpretation of NA's as No Wild Fire, because of the structure of the entries for this column
+fra <- fra_data %>% 
+    mutate(wildfire = case_when(
+        Fire == 0 ~ "No",
+        TRUE ~ "Yes"
+    )) %>% 
+    mutate(wildfire = factor(wildfire)) 
+
+fra_tc_data <- inner_join(fra, temp_tree, by=c("name", "year"))
+fra_tc_data
+
+set.seed(123)
+
+# Specify data splits 
+init_split <- initial_split(fra_tc_data, strata = wildfire)
+wf_training <- training(init_split)
+wf_testing <- testing(init_split)
+
+# 5-fold cross validation
+wf_cv <- vfold_cv(wf_training, v = 5)
 
 
-motivation1<-"The existence of forests is essential for our life on Earth. By covering around 31 percent of the world’s total land area, forests provide a retreat and home to over 80 percent of land animals and countless partially even undiscovered plants. One can say that forests are the backbone of entire ecosystems. A significant part of the oxygen we breathe is provided by the trees, while they also absorb about 25 percent of greenhouse gases. Also economically we are dependent on forests as the livelihoods of about 1.6 billion people around the world are directly or indirectly connected to forests. Furthermore, forests provide 40 percent of today’s global renewable energy supply, as much as solar, hydroelectric and wind power combined. Despite these utilities, forestation across the world has faced several challenges ranging from wildfire, human-driven deforestation, poor management and poor conversation in general. However, a loss of whole forests would mean severe consequences to humanity and life on Earth."
+
+# Decision Tree
+dt_model_spec <- decision_tree() %>% 
+    set_engine("rpart") %>% 
+    set_mode("classification")
+
+
+# Fit models on cv training data
+wf <- workflow() %>%
+    add_formula(wildfire ~ temp_increase) %>% 
+    add_model(dt_model_spec)
+
+dt_results_1 <- wf %>% 
+    fit_resamples(wf_cv) %>% 
+    collect_metrics()
+
+
+wf <- wf %>% update_formula(wildfire ~ name + continent + temp_increase + boreal + temperate+ tropical+ subtropical + Insects + Diseases + Weather + Others + year
+)
+
+dt_results_2 <- wf %>% 
+    fit_resamples(wf_cv) %>% 
+    collect_metrics()
+
+dt_results_2
+
+dt_fit <- fit(dt_model_spec, wildfire ~ name + continent + temp_increase + boreal + temperate+ tropical+ subtropical + Insects + Diseases + Weather + Others + year, wf_training)
+
+dt_fit$fit
+
+predict(dt_fit, new_data = wf_testing) %>%
+    mutate(truth = wf_testing$wildfire) %>%
+    accuracy(estimate = .pred_class, truth = truth)
+
+dt_fit <- fit(dt_model_spec, wildfire ~ temp_increase + boreal + temperate + tropical+ subtropical + Insects + Diseases + Weather + Others + year, wf_training)
+rpart.plot::rpart.plot(dt_fit$fit,roundint = FALSE)
+
+predict(dt_fit, new_data = wf_testing) %>%
+    mutate(truth = wf_testing$wildfire) %>%
+    accuracy(estimate = .pred_class, truth = truth)
+
+motivation1<-"The existence of forests is essential for our life on Earth. By covering around 31 percent of the world’s total land area, forests provide a retreat and home to over 80 percent of land animals and countless partially even undiscovered plants. One can say that forests are the backbone of entire ecosystems. A significant part of the oxygen we breathe is provided by the trees, while they also absorb about 25 percent of greenhouse gases. Also economically we are dependent on forests as the livelihoods of about 1.6 billion people around the world are directly or indirectly connected to forests. Furthermore, forests provide 40 percent of today’s global renewable energy supply, as much as solar, hydroelectric and wind power combined. Despite these utilities, forestation across the world has faced several challenges ranging from wildfire, human-driven deforestation, poor management and poor conservation in general. However, a loss of whole forests would mean severe consequences to humanity and life on Earth."
 
 motivation2<-"With this project we seek to answer important questions that address these challenges. We want to figure out the causes of destruction of forests, highlight their importance to our environment and predict trends around reforestation/deforestation. Moreover, we hope to show how we can tackle climate change by reforestation, in particular, how an increase in forest area will help to increase the buffer of sustainability. For the statistics so far, see our reference (UN 2019)."
 
@@ -733,7 +820,7 @@ wildfires_3<-"Now we also take a look at the relation between global yearly temp
 wildfires_4<-"There seems to be no linear correlation visible for both land and forest fires and rising temperatures. Again we calculate the Kendall correlation coefficient."
 wildfires_5<-"As we expected, there is no correlation between global yearly temperature changes and the global count of countries with at least one wildfires in a given year."
 wildfires_6<-"Finally we go more into detail and show not only global values but values for each country and each year:"
-wildfires_7<-"When we look at a the values for all the countries and also sort them continent-wise, there seems to be no clear correlation. The points have no overall tendency to move linear and their movement in general looks chaotic. This is a quite interesting result: on a global averaged scale a moderate correlation between temperature increase and wildfires exists while when looking at all the individual values of the countries, this does not seem to be the case."
+wildfires_7<-"When analyzing the values for all the countries and also sorting them continent-wise, there seems to be no clear correlation. The points have no overall tendency to move linear and their movement in general looks chaotic. This is a quite interesting result: on a global averaged scale a moderate correlation between temperature increase and wildfires exists while when looking at all the individual values of the countries, this does not seem to be the case."
 air_poll<-"The air pollution drastically increased after the year 2005, reaching its peak in 2014. After 2017 the air pollution decreased again and stagnated around a value of 83 μg/m3. Compared to the global average India has immense air pollution levels throughout the years. Globally the air pollution stays more or less the same or even slightly decreases."
 air_poll_1<-"We notice that India’s air pollution range lies between 65 μg/m3 (least) and 95 μg/m3 (highest), while the range of average air pollution for other countries lies between 5 μg/m3 and 66 μg/m3. However, a lot of outliers in the global average can be found, showing that a lot of countries have air pollution ranging above the maximum average value."
 air_poll_2<-"Furthermore we try to find a relationship between the forest area and air pollution. The assumption is confirmed by the correlation value that there is no relationship here."
@@ -741,7 +828,7 @@ water_1<-"Finally we want to take a look at two relationships between forest are
 water_2<-"Looking at the plot above, there seems to be a clear relationship between rainfall and forest area. To quantify these impressions, we again calculate a correlation score. In this case, both variables are not normally distributed, which we can see from the very low p-values of the Shapiro-Wilk tests. Therefore we go for the Spearman correlation coefficient."
 water_3<-"The results fit to the first impression: there is a very strong positive correlation (0.9308611) between long-term average annual precipitation and long-term average forest area."
 water_4<-"Next we want to look at the relationship to the total renewable water resources a country has available per year."
-water_5<-"Again there seems to be a strong relationship. Both variables are not normally distributed (see below), so we go for the Spearman correlation coefficient once more."
+water_5<-"Again there seems to be a strong relationship. Both variables are not normally distributed, so we go for the Spearman correlation coefficient once more."
 water_6<-"The results show that there is also a very strong positive correlation (0.8807696) between the total renewable water resources a country has available per year and the long-term average forest area of a country."
 water_7<-"Although these results are not really surprising, they give a clear impression of how dependent our forests are on the amount of available water and rainfall. Since with climate change the amount of extreme weather phenomena increases, this could lead to further troubles for the global forest land."
 Spearman_1<-"##  Shapiro-Wilk normality test
@@ -761,23 +848,25 @@ carbon_stock_4<-"Using linear regression we come to the conclusion, that for a 1
 objective<-"To begin with we want to give a general overview of global forest development over the last 30 years. Afterwards we want to dig deeper into the topics of deforestation and reforestation by extracting the main responsible countries, showing trends and investigating in possible correlations, which is leading to a crucial prediction in how many years forests would be lost, if humankind continues to act as it has in the past. In the next chapter, our analysis leads us into the area of forest destruction by natural causes. After a comprehensive overview and focusing on countries most affected by forest destruction, we want to examine whether there is a correlation between rising temperatures and wildfires and additionally try to predict where and when wildfires are likely to occur. In our final chapter we put our forest data in relation to other environmental issues as air pollution, water availability, greenhouse gas emissions and the carbon storage of forests resulting in a prediction of how much forest area has to be further increased to tackle all greenhouse gas emissions."
 objective_1<-"During the analysis, we considered some of our rather general questions from the proposal from different angles in order to provide answers that are more specific about different regions of the world. Furthermore we also tried to give some overview over other environmental issues related to our questions, for example which countries have the highest air pollution or emission values."
 
+dt_text <- "We have two variables (forest area destroyed by insects and the percentage of temperate forest) which can help us to predict where and when wildfires are in general likely to occur. Both of these values don't need to be very large to result in a higher than 70% chance of a wildfire in a given country."
 
-ui <- fluidPage(theme = shinytheme("lumen"),titlePanel("Multi-Perspective and Predictive Analysis of Forests; the Issues, Challenges and Global Trends"),
+
+ui <- fluidPage(theme = shinytheme("yeti"), 
                 
-                tags$div(tags$img(src="forest.jpg"),
-                          tags$h1("Forest"),
-                          tags$h3("Website"),
-                ),
+                tags$div(tags$img(height="600",width="100%", style="object-fit: cover;", src="forest2.jpg")),
                 
                 tabsetPanel(
                     
                     #-------------------------------------      
                     
-                    tabPanel("Overview",tags$h1("Motivation"),tags$p(motivation1),tags$p(motivation2),tags$h1("Objectives"),tags$p(objective),tags$br(),tags$p(objective_1)),  
+                    tabPanel("Overview",tags$h1("Motivation"),tags$p(motivation1),tags$p(motivation2),
+                             tags$iframe(src="https://www.youtube.com/embed/8X2MroABQ7U", allowfullscreen=NA),
+                             tags$h1("Objectives"),tags$p(objective),tags$br(),tags$p(objective_1)),  
                     #---------------------------------------------
                     tabPanel("Global Forest Development",navlistPanel(
-                        tabPanel("Global forest trends",tags$p(global_forest_trends),plotlyOutput(outputId = "plot_global_forest_trends")),
-                        tabPanel("Forest Area Change",tags$p(global_forest_trends_1),div(plotlyOutput(outputId = "plot_Forest_area_change"), align = "right")),
+                        tabPanel("Global forest trends",tags$p(global_forest_trends, style="margin-top: 16px;"),plotlyOutput(outputId = "plot_global_forest_trends")),
+                        tabPanel("Forest Area Change",tags$p(global_forest_trends_1, style="margin-top: 16px;
+"),div(plotlyOutput(outputId = "plot_Forest_area_change"), align = "right")),
                         tabPanel("Largest forest area",tags$h1("Countries with the largest forest area"),tags$p("Before we continue with our deeper analysis, we also want to highlight which countries hold the most forest area on our Earth."),tags$p(global_forest_trends_2),plotlyOutput(outputId = "plot_Largest_forest_area"))
                         
                     )#navlistPanel
@@ -800,8 +889,8 @@ ui <- fluidPage(theme = shinytheme("lumen"),titlePanel("Multi-Perspective and Pr
                     
                     tabPanel("Reforestation Vs Deforestation",
                              navlistPanel(tabPanel("Relation",tags$h1("Relation between reforestation and deforestation"),tags$p(ref_def_1),tags$br(),tags$p(ref_def_2),plotOutput(outputId = "plot_ref_def_1"),tags$p(ref_def_3),tags$br(),tags$p(ref_def_4),plotOutput(outputId = "plot_ref_def_2"),tags$p(ref_def_4a),tags$p(ref_def_4b),tags$p(ref_def_4c),tags$p("Spearman =  0.540645228525197"),tags$p(ref_def_4d),tags$p("However this value is with 0.14 not as high as expected after the correlation result.")),
-                                          tabPanel("Trends by Continent",tabsetPanel(tabPanel("Reforestation",tags$p(ref_def_5),plotOutput(outputId = "plot_ref_def_3")),
-                                                                                     tabPanel("Deforestation",tags$p(ref_def_6),plotOutput(outputId = "plot_ref_def_4"),tags$p(ref_def_7))
+                                          tabPanel("Trends by Continent",tabsetPanel(tabPanel("Reforestation",tags$p(ref_def_5),plotOutput(outputId = "plot_ref_def_4")),
+                                                                                     tabPanel("Deforestation",tags$p(ref_def_6),plotOutput(outputId = "plot_ref_def_3"),tags$p(ref_def_7))
                                                                                      
                                           )#tabsetPanel
                                           )
@@ -812,14 +901,16 @@ ui <- fluidPage(theme = shinytheme("lumen"),titlePanel("Multi-Perspective and Pr
                     #---------------------------------    
                     tabPanel("Forest Destruction", 
                              navlistPanel(tabPanel("Destruction yearly with cause ",tabsetPanel(tabPanel("Global visual",tags$h1("Main causes of forest destruction"),tags$p(destruction),plotOutput(outputId = "plot1_1")),
-                                                                                                tabPanel("Regional visual",tags$p("Note: the peak in the plot about Germany was caused by the heat wave in 2003."),selectInput(inputId = "Country_1",label = "select country to see plot",choices = unique(fra_data$name),selected = "Germany"),plotOutput(outputId = "plot_t1")) 
+                                                                                                tabPanel("Regional visual",tags$p("Note: the peak in the plot about Germany was caused by the heat wave in 2003."),selectInput(inputId = "Country_1",label = "Select country to plot",choices = unique(fra_data$name),selected = "Germany"),plotOutput(outputId = "plot_t1")) 
                              )),
                              
                              tabPanel("Destruction Causes",tabsetPanel(tabPanel("Global visual",tags$h1("Destroyed forest by cause"),tags$p(destruction_cause),plotOutput(outputId = "plot1_2")),
-                                                                       tabPanel("Regional visual",tags$p(destruction_cause_1),selectInput(inputId = "Country_2",label = "select country to see plot",choices = unique(fra_data$name),selected = "Germany"),plotOutput(outputId = "plot_t2")) 
+                                                                       tabPanel("Regional visual",tags$p(destruction_cause_1),selectInput(inputId = "Country_2",label = "Select country to plot",choices = unique(fra_data$name),selected = "Germany"),plotOutput(outputId = "plot_t2")) 
                              )),
                              tabPanel("Countries Affected",tabsetPanel(tabPanel("Global visual",tags$h1("Most affected countries"),tags$p(countires_affected),plotOutput(outputId = "plot1_3")),
-                                                                       tabPanel("Continent visual",tags$p("For Europe one can see that except for Russia, Europe’s most affected countries have no problem with wildfires."),selectInput(inputId = "continent",label = "select continent to see plot",choices = unique(fra_data$continent),selected = "Europe"),plotOutput(outputId = "plot_t3"))   ))
+                                                                       tabPanel("Continent visual",tags$p("For Europe one can see that except for Russia, Europe’s most affected countries have no problem with wildfires."),selectInput(inputId = "continent",label = "Select continent to plot",choices = c( "Americas", "Asia", "Africa", "Europe", "Oceania", "Global"),selected = "Europe"), 
+                                                                                selectInput(inputId = "number",label = "Select number of countries to plot",choices = c(5, 10, 15), selected = 5), 
+                                                                                selectInput(inputId = "cause",label = "Select cause to plot",choices = c("Insects", "Diseases", "Weather", "Others", "Fire", "All"), selected = "All"), plotOutput(outputId = "plot_t3"))))
                              
                              
                              )),
@@ -832,19 +923,18 @@ ui <- fluidPage(theme = shinytheme("lumen"),titlePanel("Multi-Perspective and Pr
                                           
                                           
                                  ),
-                                 tabPanel("Prediction",tags$h2("Prediction of where and when wildfires are likely to occur")
+                    tabPanel("Prediction",tags$h2("Prediction of where and when wildfires are likely to occur"), tags$h4("Decision Tree:"), plotOutput(outputId = "plot_dt1"), tags$p(dt_text))
                                  )
-                             )#navlistPanel
                     ),
                     #-------------------------------------
                     tabPanel("Environmental Issues",navlistPanel(
                         tabPanel("Forest area and Air pollution",tags$h2("Top 10 countries with most air pollution"),plotOutput(outputId = "plot_env_1"),tags$p("India has the highest air pollution in the last 30 years, that’s why we take a closer look on India’s air pollution figures compared to the global figures."),plotOutput(outputId = "plot_env_2"),tags$p(air_poll),plotlyOutput(outputId = "plot_env_3"),tags$p(air_poll_1),plotOutput(outputId = "plot_env_4"),tags$p(air_poll_2),tags$p("Kendall =  -0.032967032967033"),tags$p("The results above indicate that there is no correlation between Forest Area and Air Pollution.")
                         ),
                         tabPanel("GHG Emissions and Carbon in Forest",tags$h2("Relation between greenhouse gas emissions and carbon stored in forests"),tags$br(),tags$h4("Analysis and Visualizations of GHG Emissions"),tags$p(ghg_emission),plotOutput(outputId = "plot_ghg_emission_1"),tags$p("As seen below, we sought to know the proportionate constituents of the green house gases:"),plotOutput(outputId = "plot_ghg_emission_2"),tags$p("Furthermore we calculated the average emission per country from 1990 - 2020 which is visualized in the map below."),plotOutput(outputId = "plot_ghg_emission_3")),
-                        tabPanel("Carbon Stock",tags$h2("Analysis and Visualization of carbon stock"),tags$p(carbon_stock),plotOutput(outputId = "plot_mergedData_1_plot"),plotOutput(outputId = "plot_mergedData_2_plot"),tags$p(carbon_stock_1),plotOutput(outputId = "plot_mergedData_3_plot"),tags$p("Correlation:We seek to answer the correlation question here, we start by comparing both variables per year."),plotOutput(outputId = "plot_mergedData_4_plot"),tags$p("Correlation result:Kendall =  -0.954415954415954"),tags$p(carbon_stock_2),tags$h2("Relation between absorbed gas and forest area increase"),tags$p(carbon_stock_3),plotOutput(outputId = "plot_carbon_stock_1"),tags$p(carbon_stock_4)
+                        tabPanel("Carbon Stock",tags$h2("Analysis and Visualization of carbon stock"),tags$p(carbon_stock),plotOutput(outputId = "plot_mergedData_1_plot"),plotOutput(outputId = "plot_mergedData_2_plot"),tags$p(carbon_stock_1),plotOutput(outputId = "plot_mergedData_3_plot"),tags$p("Correlation:We seek to answer the correlation question here, we start by comparing both variables per year."),plotOutput(outputId = "plot_mergedData_4_plot"),tags$p("Correlation result: Kendall =  -0.954415954415954"),tags$p(carbon_stock_2),tags$h2("Relation between absorbed gas and forest area increase"),tags$p(carbon_stock_3),plotOutput(outputId = "plot_carbon_stock_1"),tags$p(carbon_stock_4)
                         ),
                         
-                        tabPanel("Water/Precipitation and Forest area",tags$h2("Relation between available water/precipitation and forest area"),tags$p(water_1),plotOutput(outputId = "plot_water_1"),tags$p(water_2),tags$p(Spearman_1),tags$p(Spearman_2),tags$p("Spearman =  0.930861096154095"),tags$p(water_3),tags$p(water_4),plotOutput(outputId = "plot_water_2"),tags$p(water_5),tags$p(Spearman_3),tags$p("Spearman =  0.880769586303481"),tags$p(water_6),tags$p(water_7))
+                        tabPanel("Water/Precipitation and Forest area",tags$h2("Relation between available water/precipitation and forest area"),tags$p(water_1),plotOutput(outputId = "plot_water_1"),tags$p(water_2),tags$p("Spearman =  0.930861096154095"),tags$p(water_3),tags$p(water_4),plotOutput(outputId = "plot_water_2"),tags$p(water_5),tags$p("Spearman =  0.880769586303481"),tags$p(water_6),tags$p(water_7))
                         
                         
                         
@@ -854,11 +944,11 @@ ui <- fluidPage(theme = shinytheme("lumen"),titlePanel("Multi-Perspective and Pr
                     
                     #-------------------------------------
                     
-                    tabPanel("Final Analysis",tags$p(final_analysis_1),tags$p(final_analysis_2),tags$p(final_analysis_3)),
+                    tabPanel("Final Analysis",tags$p(final_analysis_1, style="margin-top: 16px;"),tags$p(final_analysis_2),tags$p(final_analysis_3)),
                     #------------------------------------
                     tabPanel("Ressources",navlistPanel(
                         tabPanel("Source code & Process notebook", tags$a(tags$img(src="git.png"), href="https://github.com/ThorbenHe/DataSciR")),
-                        tabPanel("Data and Refrenses",tags$a("Climate Watch, CAIT data: 2020. “GHG Emissions.” Washington, DC: World Resources Institute. 2020.",href="https://www.climatewatchdata.org/ghg-emissions"),tags$br(),
+                        tabPanel("Data and References",tags$a("Climate Watch, CAIT data: 2020. “GHG Emissions.” Washington, DC: World Resources Institute. 2020.",href="https://www.climatewatchdata.org/ghg-emissions"),tags$br(),
                                  tags$a("FAO. 2020a. “Global Forest Resources Assessment 2020.” 2020.",href="https://fra-data.fao.org/WO/fra2020/home/"),tags$br(),
                                  tags$a("2020b. “Global Forest Resources Assessment 2020: Main Report.” Rome: FAO.",href="https://doi.org/10.4060/ca9825en"),tags$br(),
                                  tags$a("2021a. “FAOSTAT Temperature Change Dataset.” Rome Italy: FAO. 2021.",href="http://www.fao.org/faostat/en/#data/ET"),tags$br(),
@@ -881,6 +971,8 @@ ui <- fluidPage(theme = shinytheme("lumen"),titlePanel("Multi-Perspective and Pr
 
 
 server <- function(input, output) {
+    
+    output$plot_dt1<-renderPlot(rpart.plot::rpart.plot(dt_fit$fit, roundint = FALSE))
     
     output$plot<-renderPlotly(plot_ly(def_30, type='choropleth', locations=~def_30$code, z=~def_30$percent_change_1, text=~paste(name,paste("Deforestation in the last 30 years:",t_deforestation ), paste("Current forest area:",`2020` ), paste("Years until forest area will be lost:", year) ,sep = "<br />"), marker = list(line = l), colors = "Purples")  %>% 
                                   colorbar(title = "Forest loss through deforestation [%]", ticksuffix = '%') %>% 
@@ -909,8 +1001,11 @@ server <- function(input, output) {
     output$plot_t2<-renderPlot(plot_total_forest_destruction_by_region(data_t2()))
     #--------------------
     output$plot1_3<-renderPlot(plot_highest_forest_destruction())
+    
     data_t3<-reactive(input$continent)
-    output$plot_t3<-renderPlot(plot_highest_forest_destruction(data_t3()))
+    data_t4<-reactive(input$cause)
+    data_t5<-reactive(input$number)
+    output$plot_t3<-renderPlot(plot_highest_forest_destruction(cont = data_t3(), number = data_t5(), cs = data_t4()))
     
     #-------------------
     output$plot2_1<-renderPlot(fra_tc_global %>% 
@@ -924,8 +1019,8 @@ server <- function(input, output) {
                                    labs(title = "Global area of wildfires per year",
                                         subtitle = "Time period: 2000 - 2017",
                                         x = "Year",
-                                        y = "Wildfire Area [1000 ha]",
-                                        fill = "Temperature increase in C°") +
+                                        y = "Wildfire area [1000 ha]",
+                                        fill = "Temperature increase [C°]") +
                                    theme_minimal())
     #------------------ 
     output$plot2_2<-renderPlot(fra_tc_global %>% 
@@ -1019,7 +1114,7 @@ server <- function(input, output) {
             theme(legend.position = "none") +
             labs(
                 x = "Forest area [1000 ha]",
-                y = "Country",
+                y = NULL,
                 title = "Top 10 countries with the largest forest area",
                 subtitle = "For the year 2020"
             )+
@@ -1037,9 +1132,10 @@ server <- function(input, output) {
     
     output$plot_Driver_ref<-renderPlot(ggplot(ref_data, aes(x = totalref, y = fct_rev(fct_inorder(name)))) +
                                            geom_col(fill = "Forestgreen") +
+                                           scale_x_continuous(labels = scales::comma) +
                                            labs(
-                                               y = "Increase between 1990-2020 [1000 ha]",
-                                               x = NULL,
+                                               x = "Increase between 1990-2020 [1000 ha]",
+                                               y = NULL,
                                                title = "Top 20 countries of total reforestation between 1990 and 2020"
                                            ) )
     output$plot_Driver_ref_1<-renderPlot(increase %>%
@@ -1114,7 +1210,7 @@ server <- function(input, output) {
                                       theme(legend.position = "none") +
                                       labs(
                                           x = expression(paste("Average air pollution [", mu, "g/", m^3, "]")),
-                                          y = "Country",
+                                          y = NULL,
                                           title = "Top 10 countries with the highest air pollution",
                                           subtitle = "Time period: 1990 - 2020"
                                       )+
@@ -1143,11 +1239,11 @@ server <- function(input, output) {
     output$plot_mergedData_4_plot<-renderPlot(mergedData_4_plot) 
     #------------------------------
     output$plot_Forest_lost<-renderPlotly(plot_ly(defTop,  type="bar", x=defTop$year, y = fct_rev(fct_inorder(defTop$name))) %>% layout(
-        title = 'Years until forest area is lost based on deforestation',xaxis = list(title = 'Years'),yaxis = list(title = 'Countries')
+        title = 'Years until forest area is lost based on deforestation',xaxis = list(title = 'Years')
     ))
     
     output$plot_Forest_lost_1<-renderPlotly(plot_ly(defBot, type="bar", x=defBot$year, y = fct_rev(fct_inorder(defBot$name)), color = "red") %>% layout(
-        title = 'Years until forest area is lost based on deforestation',xaxis = list(title = 'Years'),yaxis = list(title = 'Countries')
+        title = 'Years until forest area is lost based on deforestation',xaxis = list(title = 'Years')
     )) 
     #---------------   
     output$plot_water_1<-renderPlot(ggplot(water_forest_data %>% drop_na(), 
@@ -1187,9 +1283,6 @@ server <- function(input, output) {
                                                scale_x_continuous(labels = scales::comma) +
                                                scale_y_continuous(labels = scales::comma))
 }
-
-
-
 
 shinyApp(ui, server, options = list(launch.browser = TRUE))
 
