@@ -7,7 +7,6 @@ subtitle: "Project Notebook"
 author: "Kiran Babu Thatha, Marcel Schulte, Obinna Patrick Nkwocha, Shweta Pandey, Thorben Hebbelmann"
 date: "`r Sys.Date()`"
 bibliography: refs.bib
-#csl: 3-biotech.csl
 output: 
   prettydoc::html_pretty:
     theme: cayman    
@@ -952,7 +951,7 @@ As one would expect from our previous findings, the most affected countries most
 
 ## Relation between rising temperatures and wildfires
 
-As already mentioned when introducing the forest destruction dataset, the wildfire correlation considers only countries with no missing wildfire values for any given year. We made this restriction to make sure that each year has an equal amount of real values. The 73 countries which are in the following considered are shown below:
+As already mentioned when introducing the forest destruction dataset, the wildfire correlation considers only countries with no missing wildfire values for any given year. We made this restriction to make sure that each year has an equal amount of real values. The 73 countries which are therefore in the following considered are shown below:
 
 ```{r}
 temp_fra %>% select(name) %>% unique()
@@ -1006,7 +1005,7 @@ fra_tc_global %>%
   theme_minimal()
 ```
 
-Next we compare global yearly temperature changes to global forest area destructed by wildfires with a different graph.
+Next we look at the relation by using a scatter plot. Each point represents a year with its global average temperature increase and the total area lost through wildfires.
 
 ```{r fire_temp_corr_plot, message=FALSE}
 fra_tc_global %>% 
@@ -1073,7 +1072,7 @@ fra_tc_global %>%
   theme_minimal()
 ```
 
-There seems to be no linear correlation visible for both land and forest fires and rising temperatures. Again we calculate the Kendall correlation coefficient.
+There seems to be no linear correlation. Again we calculate the Kendall correlation coefficient.
 
 ```{r}
 corr_data2 <- fra_tc_global %>% 
@@ -1156,9 +1155,9 @@ fra_tc_data <- inner_join(fra, temp, by=c("name", "year"))
 fra_tc_data
 ```
 Based on the columns in the table above, we will try to predict if a wildfire occurs or not. So we will use the location, year, forest composition, destruction information and temperature increase.
-"Wildfire" is the target we want to predict and has either the value "No", if we don't have any data or the value of wildfires is 0, and "Yes" otherwise. So we have a binary classification task.
+"Wildfire" is the target we want to predict and has either the value "No", if we have a missing value or the value of wildfires is 0, and "Yes" otherwise. So we have a binary classification task.
 
-We got roughly 3800 samples for the prediction. We use 5-fold cross validation and a train / test split of 3/4 to train our model.
+We got roughly 3800 samples for the prediction. We use 5-fold cross validation and a train/test split of 3/4 to train our model.
 
 ```{r prepare_data}
 set.seed(123)
@@ -1213,7 +1212,7 @@ lr_results_1
 dt_results_1
 ```
 
-Even though the Decision Tree has a slightly worse performance, we move on using a decision tree model because of its intuitive visualization and interpretation. 
+Even though the decision tree has a slightly worse performance, we move on using a decision tree model because of its intuitive visualization and interpretation. Now that we have our machine learning algorithm selected, we take a look at the validation performance when using all predictor variables with this model.
 
 ```{r model_validation_2, message=FALSE, warning=FALSE}
 # Next step: find optimal formula
@@ -1229,29 +1228,37 @@ dt_results_2
 ```
 As shown above we got a very promising performance for our cross validation data when using all predictor variables. We now test the model on the test set.
 
+**Decision tree 1 (learned with all predictors):**
 ```{r model_evaluation}
 dt_fit <- fit(dt_model_spec, wildfire ~ name + continent + temp_increase + boreal + temperate+ tropical+ subtropical + Insects + Diseases + Weather + Others + year, wf_training)
 rpart.plot::rpart.plot(dt_fit$fit, roundint = FALSE)
 
+dt_fit$fit
+
 predict(dt_fit, new_data = wf_testing) %>%
   mutate(truth = wf_testing$wildfire) %>%
   accuracy(estimate = .pred_class, truth = truth)
 ```
 
-We again got a very high accuracy with about 92%, however, when looking at our decision tree, the prediction of when a wildfire occurs seems to be impractical because the most / only important factor is the country. Therefore we will remove the country information from our model, to see if we can find any underlying patters of wildfires. We also removed the year since it doesn't make any sense to use it when predicting upcoming wildfires.
+We again got a very high accuracy with about 92%, however, when looking at our decision tree, the prediction of when a wildfire occurs seems to be impractical because the most / only important factor is the country. Therefore we will remove the country information from our model, to see if we can find any underlying patters besides the country.
 
+Note: we have to many countries to be properly visualized in the decision tree above. Below the tree you can find the textual representation of it where you can look at all the countries and the decision they belong to.
+
+**Decision tree 2 (learned without country information):**
 ```{r}
 dt_fit <- fit(dt_model_spec, wildfire ~ temp_increase + boreal + temperate + tropical+ subtropical + Insects + Diseases + Weather + Others + year, wf_training)
-rpart.plot::rpart.plot(dt_fit$fit, roundint = FALSE)
+rpart.plot::rpart.plot(dt_fit$fit,roundint = FALSE)
 
 predict(dt_fit, new_data = wf_testing) %>%
   mutate(truth = wf_testing$wildfire) %>%
   accuracy(estimate = .pred_class, truth = truth)
 ```
-Even though the accuracy decreased by almost 20%, the decision tree looks more promising. 
+Even though the accuracy decreased by almost 20%, the decision tree looks more promising. Now we have two variables (forest area destroyed by insects and the percentage of temperate forest) which can help us to predict where and when wildfires are in general likely to occur. So we do not depend only on the country for the prediction.
 
 To sum up the results:
-Our most accurate prediction depends only on the given country and is therefore not very useful in finding the underlying source of wildfires, even though it has a accuracy 92%. If we remove the country as a predictor, the main factors for deciding whether a wildfire occurs or not are the type of forests in a given country and the the amount of destroyed forest by insects. Both of these values don't need to be very high to result in a 70% chance of a wildfire in a given country.
+Our most accurate prediction depends only on the given country and is therefore not very useful in finding the underlying source of wildfires, even though it has a accuracy 92%. If we remove the country as a predictor, the main factors for deciding whether a wildfire occurs or not are the type of forests in a given country and the the amount of destroyed forest by insects. Both of these values don't need to be very large to result in a higher than 70% chance of a wildfire in a given country.
+
+As we have shown in the datasets chapter, the data on forest disturbances contains a lot of missing values. Therefore you have to be very careful with interpretations of these results.
 
 # Relation to other environmental issues
 
